@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import 'notifications_panel.dart';
 
 class BuyerTopBar extends StatelessWidget {
   const BuyerTopBar({super.key});
@@ -93,7 +94,7 @@ class BuyerTopBar extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
-                onPressed: () {},
+                onPressed: () => NotificationsPanel.show(context),
               ),
               Positioned(
                 right: 6, top: 6,
@@ -114,7 +115,7 @@ class BuyerTopBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Olá, comprador', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                  Text('Olá, usuário', style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
                 ],
               ),
               const SizedBox(width: 4),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import 'admin_edit_product_screen.dart';
 
 class AdminProductsScreen extends StatelessWidget {
   const AdminProductsScreen({super.key});
@@ -211,7 +212,17 @@ class _ProductRow extends StatelessWidget {
             flex: 1,
             child: Row(
               children: [
-                IconButton(icon: const Icon(Icons.edit_outlined, size: 16), onPressed: () {}, color: AppColors.primary),
+                IconButton(
+                  icon: const Icon(Icons.edit_outlined, size: 16),
+                  color: AppColors.primary,
+                  tooltip: 'Editar produto',
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => AdminEditProductScreen(product: product),
+                    );
+                  },
+                ),
                 IconButton(icon: const Icon(Icons.delete_outline, size: 16), onPressed: () {}, color: AppColors.error),
               ],
             ),

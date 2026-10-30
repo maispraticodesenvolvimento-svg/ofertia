@@ -63,12 +63,7 @@ class AdminSidebar extends StatelessWidget {
                   route: '/admin/products',
                   isActive: location.contains('/admin/products'),
                 ),
-                _SidebarItem(
-                  icon: Icons.store_outlined,
-                  label: 'Vendedores',
-                  route: '/admin/vendors',
-                  isActive: location.contains('/admin/vendors'),
-                ),
+
                 _SidebarItem(
                   icon: Icons.handshake_outlined,
                   label: 'Negociações',

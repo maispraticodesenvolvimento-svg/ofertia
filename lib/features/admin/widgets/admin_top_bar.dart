@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../buyer/widgets/notifications_panel.dart';
 
 class AdminTopBar extends StatelessWidget {
   const AdminTopBar({super.key});
@@ -29,7 +30,7 @@ class AdminTopBar extends StatelessWidget {
               child: TextField(
                 textAlignVertical: TextAlignVertical.center,
                 decoration: InputDecoration(
-                  hintText: 'Buscar produtos, vendedores, pedidos...',
+                  hintText: 'Buscar produtos, usuários, pedidos...',
                   hintStyle: GoogleFonts.inter(
                     color: AppColors.grey400,
                     fontSize: 13,
@@ -64,7 +65,7 @@ class AdminTopBar extends StatelessWidget {
             children: [
               IconButton(
                 icon: const Icon(Icons.notifications_outlined, color: AppColors.grey600),
-                onPressed: () {},
+                onPressed: () => NotificationsPanel.show(context),
               ),
               Positioned(
                 right: 6,

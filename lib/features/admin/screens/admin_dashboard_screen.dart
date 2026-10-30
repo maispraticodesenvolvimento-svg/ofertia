@@ -49,11 +49,9 @@ class AdminDashboardScreen extends StatelessWidget {
                   const SizedBox(width: 12),
                   Expanded(child: _MetricCard(icon: Icons.local_offer_outlined, label: 'Ofertas publicadas', value: '298.731', change: '+8%', color: AppColors.primary)),
                   const SizedBox(width: 12),
-                  Expanded(child: _MetricCard(icon: Icons.people_outline, label: 'Vendedores', value: '12.548', change: '+15%', color: AppColors.primary)),
+                  Expanded(child: _MetricCard(icon: Icons.people_outline, label: 'Usuários ativos', value: '12.548', change: '+15%', color: AppColors.primary)),
                   const SizedBox(width: 12),
                   Expanded(child: _MetricCard(icon: Icons.shopping_cart_outlined, label: 'Negociações abertas', value: '8.421', change: '+6%', color: AppColors.primary)),
-                  const SizedBox(width: 12),
-                  Expanded(child: _MetricCard(icon: Icons.access_time_outlined, label: 'Aprovações pendentes', value: '237', change: '+24%', color: AppColors.error, changeColor: AppColors.error)),
                 ],
               )
             : GridView.count(
@@ -66,39 +64,13 @@ class AdminDashboardScreen extends StatelessWidget {
                 children: [
                   _MetricCard(icon: Icons.inventory_2_outlined, label: 'Produtos ativos', value: '1.842', change: '+12%', color: AppColors.primary),
                   _MetricCard(icon: Icons.local_offer_outlined, label: 'Ofertas publicadas', value: '935', change: '+8%', color: AppColors.primary),
-                  _MetricCard(icon: Icons.people_outline, label: 'Vendedores', value: '284', change: '+5%', color: AppColors.primary),
+                  _MetricCard(icon: Icons.people_outline, label: 'Usuários ativos', value: '284', change: '+5%', color: AppColors.primary),
                   _MetricCard(icon: Icons.handshake_outlined, label: 'Negociações abertas', value: '127', change: '+18%', color: AppColors.primary),
                 ],
               ),
-          const SizedBox(height: 8),
-          if (!isWide)
-            _MetricCard(
-              icon: Icons.description_outlined,
-              label: 'Aprovações pendentes',
-              value: '23',
-              change: 'Urgente',
-              color: AppColors.error,
-              changeColor: AppColors.error,
-              fullWidth: true,
-            ),
           const SizedBox(height: 24),
           // Charts + approvals
-          isWide
-            ? Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: 2, child: _SalesChart()),
-                  const SizedBox(width: 16),
-                  Expanded(flex: 1, child: _PendingApprovals()),
-                ],
-              )
-            : Column(
-                children: [
-                  _SalesChart(),
-                  const SizedBox(height: 16),
-                  _PendingApprovals(),
-                ],
-              ),
+          _SalesChart(),
           const SizedBox(height: 24),
           // Recent activity + quick actions
           isWide
@@ -391,142 +363,16 @@ class _SalesMetric extends StatelessWidget {
   }
 }
 
-class _PendingApprovals extends StatelessWidget {
-  final _items = const [
-    {'title': 'Smartphone Delta X1', 'sub': 'Novo produto\nhá 2 horas', 'icon': Icons.smartphone_outlined},
-    {'title': 'Loja TechBR', 'sub': 'Novo vendedor\nhá 5 horas', 'icon': Icons.store_outlined},
-    {'title': 'Tênis Run Pro', 'sub': 'Alteração de produto\nhá 1 dia', 'icon': Icons.shopping_bag_outlined},
-    {'title': 'Casa & Estilo', 'sub': 'Novo vendedor\nhá 1 dia', 'icon': Icons.store_outlined},
-  ];
 
-  const _PendingApprovals({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.grey200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.access_time_outlined, color: AppColors.primary, size: 18),
-                  const SizedBox(width: 8),
-                  Text('Aprovações pendentes',
-                    style: GoogleFonts.inter(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.grey900,
-                    ),
-                  ),
-                ],
-              ),
-              TextButton(
-                onPressed: () {},
-                child: Text('Ver todas',
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.primary),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          ...(_items.map((item) => _ApprovalItem(
-            title: item['title'] as String,
-            sub: item['sub'] as String,
-            icon: item['icon'] as IconData,
-          ))).toList(),
-        ],
-      ),
-    );
-  }
-}
-
-class _ApprovalItem extends StatelessWidget {
-  final String title;
-  final String sub;
-  final IconData icon;
-
-  const _ApprovalItem({required this.title, required this.sub, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: AppColors.grey100,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: AppColors.grey600, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.grey800,
-                  ),
-                ),
-                Text(sub,
-                  style: GoogleFonts.inter(fontSize: 11, color: AppColors.grey500),
-                  maxLines: 2,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              minimumSize: const Size(64, 30),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
-            ),
-            child: const Text('Aprovar'),
-          ),
-          const SizedBox(width: 6),
-          OutlinedButton(
-            onPressed: () {},
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.error,
-              side: const BorderSide(color: AppColors.error),
-              minimumSize: const Size(60, 30),
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
-            ),
-            child: const Text('Rejeitar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _RecentActivity extends StatelessWidget {
   final _activities = const [
     {'date': '30/04/2024 14:32', 'type': 'Produto', 'desc': 'Novo produto publicado', 'user': 'Loja TechBR', 'status': 'Aprovado'},
-    {'date': '30/04/2024 13:17', 'type': 'Vendedor', 'desc': 'Novo vendedor cadastrado', 'user': 'Casa & Estilo', 'status': 'Em análise'},
-    {'date': '30/04/2024 11:03', 'type': 'Negociação', 'desc': 'Negociação iniciada', 'user': 'Cliente #98432', 'status': 'Ativa'},
+    {'date': '30/04/2024 13:17', 'type': 'Usuário', 'desc': 'Novo usuário cadastrado', 'user': 'Casa & Estilo', 'status': 'Em análise'},
+    {'date': '30/04/2024 11:03', 'type': 'Negociação', 'desc': 'Negociação iniciada', 'user': 'Usuário #98432', 'status': 'Ativa'},
     {'date': '30/04/2024 09:48', 'type': 'Oferta', 'desc': 'Oferta atualizada', 'user': 'Loja ModalVive', 'status': 'Aprovado'},
-    {'date': '29/04/2024 18:21', 'type': 'Usuário', 'desc': 'Dados do vendedor alterados', 'user': 'Eletrônicos Já', 'status': 'Em análise'},
+    {'date': '29/04/2024 18:21', 'type': 'Usuário', 'desc': 'Dados do usuário alterados', 'user': 'Eletrônicos Já', 'status': 'Em análise'},
   ];
 
   const _RecentActivity({super.key});
@@ -619,7 +465,7 @@ class _RecentActivity extends StatelessWidget {
   IconData _typeIcon(String type) {
     switch (type) {
       case 'Produto': return Icons.inventory_2_outlined;
-      case 'Vendedor': return Icons.store_outlined;
+      case 'Usuário': return Icons.person_outline;
       case 'Negociação': return Icons.handshake_outlined;
       case 'Oferta': return Icons.local_offer_outlined;
       default: return Icons.person_outline;
@@ -723,9 +569,9 @@ class _QuickActions extends StatelessWidget {
             sub: 'Cadastrar, editar e revisar produtos',
           ),
           _QuickActionItem(
-            icon: Icons.store_outlined,
-            title: 'Vendedores',
-            sub: 'Aprovar e administrar vendedores',
+            icon: Icons.people_outline,
+            title: 'Usuários',
+            sub: 'Gerenciar usuários da plataforma',
           ),
           _QuickActionItem(
             icon: Icons.bar_chart_outlined,

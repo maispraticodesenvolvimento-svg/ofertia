@@ -7,6 +7,7 @@ import '../../admin/widgets/admin_top_bar.dart';
 import '../../buyer/widgets/buyer_nav_bar.dart';
 import '../../buyer/widgets/buyer_top_bar.dart';
 import '../../buyer/widgets/buyer_mobile_bottom_bar.dart';
+import '../../buyer/widgets/notifications_panel.dart';
 
 class RootScreen extends StatelessWidget {
   final Widget child;
@@ -100,7 +101,7 @@ class _MobileAdminAppBar extends StatelessWidget implements PreferredSizeWidget 
           children: [
             IconButton(
               icon: const Icon(Icons.notifications_outlined, color: Colors.white),
-              onPressed: () {},
+                onPressed: () => NotificationsPanel.show(context),
             ),
             Positioned(
               right: 8,
@@ -147,7 +148,6 @@ class _AdminMobileBottomBar extends StatelessWidget {
     int selectedIndex = 0;
     if (location.contains('/admin/dashboard')) selectedIndex = 0;
     if (location.contains('/admin/products')) selectedIndex = 1;
-    if (location.contains('/admin/vendors')) selectedIndex = 2;
 
     return BottomNavigationBar(
       currentIndex: selectedIndex,
@@ -157,11 +157,11 @@ class _AdminMobileBottomBar extends StatelessWidget {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Início'),
         BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), label: 'Produtos'),
-        BottomNavigationBarItem(icon: Icon(Icons.store_outlined), label: 'Vendedores'),
+        BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Usuários'),
         BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'Mais'),
       ],
       onTap: (i) {
-        final routes = ['/admin/dashboard', '/admin/products', '/admin/vendors', '/admin/orders'];
+        final routes = ['/admin/dashboard', '/admin/products', '/admin/clients', '/admin/orders'];
         context.go(routes[i]);
       },
     );
@@ -235,8 +235,8 @@ class _MobileBuyerAppBar extends StatelessWidget {
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    Text(
-                      'Olá, comprador',
+                      Text(
+                      'Olá, usuário',
                       style: GoogleFonts.inter(
                         color: Colors.white.withOpacity(0.9),
                         fontSize: 14,
@@ -252,7 +252,10 @@ class _MobileBuyerAppBar extends StatelessWidget {
                     ),
                   ],
                 ),
-                Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
+                GestureDetector(
+                  onTap: () => NotificationsPanel.show(context),
+                  child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
+                ),
               ],
             ),
             const SizedBox(height: 12),

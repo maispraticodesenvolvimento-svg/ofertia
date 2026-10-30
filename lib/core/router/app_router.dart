@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/admin/screens/admin_dashboard_screen.dart';
 import '../../features/admin/screens/admin_products_screen.dart';
-import '../../features/admin/screens/admin_vendors_screen.dart';
+
 import '../../features/admin/screens/admin_negotiations_screen.dart';
 import '../../features/admin/screens/admin_orders_screen.dart';
 import '../../features/admin/screens/admin_clients_screen.dart';
@@ -75,12 +75,7 @@ final GoRouter appRouter = GoRouter(
             child: AdminProductsScreen(),
           ),
         ),
-        GoRoute(
-          path: '/admin/vendors',
-          pageBuilder: (context, state) => const NoTransitionPage(
-            child: AdminVendorsScreen(),
-          ),
-        ),
+
         GoRoute(
           path: '/admin/negotiations',
           pageBuilder: (context, state) => const NoTransitionPage(
