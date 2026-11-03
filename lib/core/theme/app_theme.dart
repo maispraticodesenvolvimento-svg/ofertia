@@ -2,57 +2,58 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Primary greens
-  static const Color primary = Color(0xFF1B5E20);
-  static const Color primaryDark = Color(0xFF0D3B12);
-  static const Color primaryMedium = Color(0xFF2E7D32);
-  static const Color primaryLight = Color(0xFF4CAF50);
-  static const Color primarySurface = Color(0xFFE8F5E9);
-  static const Color primaryBorder = Color(0xFFC8E6C9);
+  // Brand: electric blue with opportunity green accents.
+  static const Color primary = Color(0xFF2563EB);
+  static const Color primaryDark = Color(0xFF1D4ED8);
+  static const Color primaryMedium = Color(0xFF3B82F6);
+  static const Color primaryLight = Color(0xFF22C55E);
+  static const Color primarySurface = Color(0xFFEFF6FF);
+  static const Color primaryBorder = Color(0xFFBFDBFE);
 
   // Accent
-  static const Color accent = Color(0xFF69F0AE);
+  static const Color accent = Color(0xFF22C55E);
   static const Color accentOrange = Color(0xFFFF6D00);
   static const Color accentAmber = Color(0xFFFFB300);
 
   // Neutral
   static const Color white = Color(0xFFFFFFFF);
-  static const Color background = Color(0xFFF5F5F5);
+  static const Color background = Color(0xFFF8FAFC);
   static const Color surface = Color(0xFFFFFFFF);
-  static const Color grey50 = Color(0xFFFAFAFA);
-  static const Color grey100 = Color(0xFFF5F5F5);
-  static const Color grey200 = Color(0xFFEEEEEE);
-  static const Color grey300 = Color(0xFFE0E0E0);
-  static const Color grey400 = Color(0xFFBDBDBD);
-  static const Color grey500 = Color(0xFF9E9E9E);
-  static const Color grey600 = Color(0xFF757575);
-  static const Color grey700 = Color(0xFF616161);
-  static const Color grey800 = Color(0xFF424242);
-  static const Color grey900 = Color(0xFF212121);
+  static const Color grey50 = Color(0xFFF8FAFC);
+  static const Color grey100 = Color(0xFFF1F5F9);
+  static const Color grey200 = Color(0xFFE2E8F0);
+  static const Color grey300 = Color(0xFFCBD5E1);
+  static const Color grey400 = Color(0xFF94A3B8);
+  static const Color grey500 = Color(0xFF64748B);
+  static const Color grey600 = Color(0xFF475569);
+  static const Color grey700 = Color(0xFF334155);
+  static const Color grey800 = Color(0xFF1E293B);
+  static const Color grey900 = Color(0xFF0F172A);
 
   // States
-  static const Color success = Color(0xFF2E7D32);
+  static const Color success = Color(0xFF22C55E);
   static const Color warning = Color(0xFFFF8F00);
   static const Color error = Color(0xFFC62828);
-  static const Color info = Color(0xFF1565C0);
+  static const Color info = Color(0xFF2563EB);
 
   // Status chips
-  static const Color statusApproved = Color(0xFF2E7D32);
+  static const Color statusApproved = Color(0xFF22C55E);
   static const Color statusPending = Color(0xFFFF8F00);
-  static const Color statusActive = Color(0xFF1565C0);
+  static const Color statusActive = Color(0xFF2563EB);
   static const Color statusAnalysis = Color(0xFFF57F17);
 
   // Sidebar
-  static const Color sidebarBg = Color(0xFF1B5E20);
-  static const Color sidebarActive = Color(0xFF2E7D32);
-  static const Color sidebarText = Color(0xFFE8F5E9);
-  static const Color sidebarIcon = Color(0xFFA5D6A7);
+  static const Color sidebarBg = Color(0xFF172554);
+  static const Color sidebarActive = Color(0xFF2563EB);
+  static const Color sidebarText = Color(0xFFDBEAFE);
+  static const Color sidebarIcon = Color(0xFF86EFAC);
 }
 
 class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
+      scaffoldBackgroundColor: AppColors.background,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         primary: AppColors.primary,

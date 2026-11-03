@@ -248,7 +248,7 @@ class _MobileBanner extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [AppColors.primaryDark, AppColors.primary, Color(0xFF66BB6A)],
+            colors: [AppColors.primaryDark, AppColors.primary, AppColors.success],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -554,8 +554,12 @@ class _WideBannerItem extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFFDCF5E4), Color(0xFFA5D6A7), Color(0xFFE8F5E9)],
+        gradient: LinearGradient(
+          colors: [
+            AppColors.success.withOpacity(0.12),
+            AppColors.success.withOpacity(0.24),
+            AppColors.success.withOpacity(0.12),
+          ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
