@@ -97,9 +97,13 @@ class _BuyerAccountScreenState extends State<BuyerAccountScreen> {
                     onPressed: () async {
                       try {
                         await ApiClient().logout();
+                      } catch (_) {
+                        // Limpa o estado local e mantém o formulário de login acessível
+                        // mesmo se o servidor estiver temporariamente indisponível.
+                      } finally {
                         SessionService.instance.clear();
-                        if (context.mounted) context.go('/login');
-                      } catch (_) {}
+                        if (context.mounted) context.go('/login?force=true');
+                      }
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,

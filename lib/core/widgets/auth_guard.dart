@@ -35,12 +35,29 @@ class _AuthGuardState extends State<AuthGuard> {
   @override
   void initState() {
     super.initState();
+    SessionService.instance.addListener(_handleSessionChanged);
     _check();
+  }
+
+  @override
+  void dispose() {
+    SessionService.instance.removeListener(_handleSessionChanged);
+    super.dispose();
+  }
+
+  void _handleSessionChanged() {
+    if (!mounted) return;
+    final user = SessionService.instance.currentUser;
+    setState(() {
+      _authCheck = Future.value(
+        user != null && user['uid'] != null ? user : null,
+      );
+    });
   }
 
   void _check() {
     _authCheck = ApiClient().currentUser().then<Map<String, dynamic>?>((u) {
-      SessionService.instance.refresh();
+      SessionService.instance.updateLocalUser(u);
       return u;
     }).catchError((_) {
       SessionService.instance.clear();

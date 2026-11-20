@@ -16,9 +16,12 @@ class _SessionClient extends http.BaseClient {
       orElse: () => '',
     );
     if (session != null && session.isNotEmpty) {
-      _cookie = session.trim();
-    } else if (setCookie?.contains('ofertia_session=;') == true) {
-      _cookie = null;
+      final cookie = session.trim();
+      if (cookie == 'ofertia_session=' || setCookie?.contains('Max-Age=0') == true) {
+        _cookie = null;
+      } else {
+        _cookie = cookie;
+      }
     }
     return response;
   }

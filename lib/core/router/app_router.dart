@@ -38,6 +38,7 @@ final GoRouter appRouter = GoRouter(
       pageBuilder: (context, state) => NoTransitionPage(
         child: LoginScreen(
           redirect: state.uri.queryParameters['redirect'],
+          forceLogin: state.uri.queryParameters['force'] == 'true',
         ),
       ),
     ),

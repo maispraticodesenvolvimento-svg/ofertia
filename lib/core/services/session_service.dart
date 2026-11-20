@@ -6,6 +6,7 @@ class SessionService extends ChangeNotifier {
   static final SessionService instance = SessionService._();
 
   Map<String, dynamic>? _currentUser;
+  int _sessionRevision = 0;
 
   Map<String, dynamic>? get currentUser => _currentUser;
   bool get isAuthenticated => _currentUser != null && _currentUser!['uid'] != null;
@@ -58,16 +59,19 @@ class SessionService extends ChangeNotifier {
   }
 
   Future<void> refresh() async {
+    final revision = _sessionRevision;
     try {
-      _currentUser = await ApiClient().currentUser();
+      final user = await ApiClient().currentUser();
+      if (revision == _sessionRevision) _currentUser = user;
     } catch (_) {
-      _currentUser = null;
+      if (revision == _sessionRevision) _currentUser = null;
     } finally {
-      notifyListeners();
+      if (revision == _sessionRevision) notifyListeners();
     }
   }
 
   void updateLocalUser(Map<String, dynamic> updated) {
+    _sessionRevision++;
     if (_currentUser == null) {
       _currentUser = updated;
     } else {
@@ -77,6 +81,7 @@ class SessionService extends ChangeNotifier {
   }
 
   void clear() {
+    _sessionRevision++;
     _currentUser = null;
     notifyListeners();
   }

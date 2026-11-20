@@ -7,9 +7,10 @@ import '../../../core/services/session_service.dart';
 import '../../../core/theme/app_theme.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.redirect});
+  const LoginScreen({super.key, this.redirect, this.forceLogin = false});
 
   final String? redirect;
+  final bool forceLogin;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -41,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.forceLogin) return;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         await ApiClient().currentUser();

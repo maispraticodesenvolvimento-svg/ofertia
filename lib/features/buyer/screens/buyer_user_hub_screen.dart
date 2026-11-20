@@ -394,6 +394,7 @@ class _BuyerUserHubScreenState extends State<BuyerUserHubScreen> with SingleTick
 
   // ── ABA 1: MINHAS OFERTAS ────────────────────────────────────────────────
   Widget _buildOffersTab() {
+    final compact = MediaQuery.sizeOf(context).width <= 600;
     return FutureBuilder<Map<String, dynamic>>(
       future: _userOffers,
       builder: (context, snap) {
@@ -410,6 +411,52 @@ class _BuyerUserHubScreenState extends State<BuyerUserHubScreen> with SingleTick
             final isSell = o['type'] == 'sell';
             final price = o['price'] is num ? (o['price'] as num).toDouble() : 0.0;
             final freeShipping = o['freeShipping'] == true;
+            final productInfo = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  o['productName']?.toString() ?? 'Produto',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.grey900),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Condição: ${o['condition'] ?? "Novo"} • ${freeShipping ? "Frete Grátis" : "Frete calculado no checkout"}',
+                  maxLines: compact ? 2 : 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey600),
+                ),
+              ],
+            );
+            final typeBadge = Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: isSell ? const Color(0xFF00A650).withValues(alpha: 0.12) : const Color(0xFF3483FA).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                isSell ? 'OFERTA DE VENDA' : 'OFERTA DE COMPRA',
+                maxLines: 1,
+                softWrap: false,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                  color: isSell ? const Color(0xFF00A650) : const Color(0xFF3483FA),
+                ),
+              ),
+            );
+            final priceText = Text(
+              _currency.format(price),
+              style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.grey900),
+            );
+            final deleteButton = IconButton(
+              constraints: compact ? const BoxConstraints.tightFor(width: 40, height: 40) : null,
+              padding: compact ? EdgeInsets.zero : null,
+              icon: const Icon(Icons.delete_outline, color: AppColors.error),
+              tooltip: 'Cancelar oferta',
+              onPressed: () => _deleteOffer(o['id'], o['productId']),
+            );
 
             return Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -419,52 +466,33 @@ class _BuyerUserHubScreenState extends State<BuyerUserHubScreen> with SingleTick
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppColors.grey200),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: isSell ? const Color(0xFF00A650).withValues(alpha: 0.12) : const Color(0xFF3483FA).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      isSell ? 'OFERTA DE VENDA' : 'OFERTA DE COMPRA',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: isSell ? const Color(0xFF00A650) : const Color(0xFF3483FA),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
+              child: compact
+                  ? Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          o['productName']?.toString() ?? 'Produto',
-                          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.grey900),
+                        Row(
+                          children: [
+                            typeBadge,
+                            const Spacer(),
+                            priceText,
+                            const SizedBox(width: 2),
+                            deleteButton,
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Condição: ${o['condition'] ?? "Novo"} • ${freeShipping ? "Frete Grátis" : "Frete: ${_currency.format(o['shippingPrice'] ?? 0)}"}',
-                          style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey600),
-                        ),
+                        const SizedBox(height: 8),
+                        productInfo,
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        typeBadge,
+                        const SizedBox(width: 14),
+                        Expanded(child: productInfo),
+                        priceText,
+                        const SizedBox(width: 16),
+                        deleteButton,
                       ],
                     ),
-                  ),
-                  Text(
-                    _currency.format(price),
-                    style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.grey900),
-                  ),
-                  const SizedBox(width: 16),
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                    tooltip: 'Cancelar oferta',
-                    onPressed: () => _deleteOffer(o['id'], o['productId']),
-                  ),
-                ],
-              ),
             );
           },
         );

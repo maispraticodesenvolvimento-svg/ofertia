@@ -36,6 +36,16 @@ class _BuyerProductDetailScreenState extends State<BuyerProductDetailScreen> {
     _refreshAll();
   }
 
+  @override
+  void didUpdateWidget(covariant BuyerProductDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.productId != widget.productId) {
+      _selectedImageIndex = 0;
+      _descriptionExpanded = false;
+      _refreshAll();
+    }
+  }
+
   void _refreshAll() {
     _product = _api.getProduct(widget.productId);
     _offers = _api.getProductOffers(widget.productId);
@@ -93,9 +103,8 @@ class _BuyerProductDetailScreenState extends State<BuyerProductDetailScreen> {
     if (!complete || !mounted) return;
 
     final priceCtrl = TextEditingController(text: product.price > 0 ? product.price.toStringAsFixed(2) : '');
-    final shippingCtrl = TextEditingController(text: '0,00');
     final notesCtrl = TextEditingController();
-    bool freeShipping = true;
+    bool freeShipping = false;
     String condition = 'Novo';
     final selectedPaymentMethods = <String>{'Pix', 'Cartão de Crédito'};
 
@@ -156,18 +165,14 @@ class _BuyerProductDetailScreenState extends State<BuyerProductDetailScreen> {
                     value: freeShipping,
                     onChanged: (v) => setDlgState(() => freeShipping = v),
                   ),
-                  if (!freeShipping) ...[
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: shippingCtrl,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Valor do Frete (R\$) *',
-                        hintText: 'Ex: 25,00',
-                        prefixIcon: Icon(Icons.local_shipping_outlined, size: 20),
+                  if (!freeShipping)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'O frete será calculado pelo Melhor Envio conforme o CEP do comprador.',
+                        style: GoogleFonts.inter(fontSize: 11, color: AppColors.grey600),
                       ),
                     ),
-                  ],
                   const SizedBox(height: 14),
 
                   Text('Formas de Pagamento Aceitas:', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.grey700)),
@@ -228,14 +233,13 @@ class _BuyerProductDetailScreenState extends State<BuyerProductDetailScreen> {
     if (saved == true) {
       try {
         final price = double.parse(priceCtrl.text.replaceAll(',', '.'));
-        final shipping = freeShipping ? 0.0 : (double.tryParse(shippingCtrl.text.replaceAll(',', '.')) ?? 0.0);
 
         await _api.createProductOffer(
           product.id,
           type: 'sell',
           price: price,
           freeShipping: freeShipping,
-          shippingPrice: shipping,
+          shippingPrice: 0,
           paymentMethods: selectedPaymentMethods.toList(),
           condition: condition,
           notes: notesCtrl.text.trim(),
@@ -701,7 +705,6 @@ class _BuyerProductDetailScreenState extends State<BuyerProductDetailScreen> {
   Widget _sellOfferCard(Product product, Map<String, dynamic> offer) {
     final price = offer['price'] is num ? (offer['price'] as num).toDouble() : 0.0;
     final freeShipping = offer['freeShipping'] == true;
-    final shippingPrice = offer['shippingPrice'] is num ? (offer['shippingPrice'] as num).toDouble() : 0.0;
     final vendorName = offer['userName']?.toString() ?? 'Vendedor Verificado';
     final condition = offer['condition']?.toString() ?? 'Novo';
     final payments = (offer['paymentMethods'] as List? ?? ['Pix', 'Cartão']).map((e) => e.toString()).toList();
@@ -769,7 +772,7 @@ class _BuyerProductDetailScreenState extends State<BuyerProductDetailScreen> {
                           )
                         else
                           Text(
-                            '+ ${_currency.format(shippingPrice)} frete',
+                            'Frete calculado no checkout',
                             style: GoogleFonts.inter(fontSize: 11, color: AppColors.grey600),
                           ),
                       ],
@@ -1483,9 +1486,13 @@ class _SimilarProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currency = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
 
-    return GestureDetector(
-      onTap: () => context.go('/buyer/product/${product.id}'),
-      child: Container(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: () => context.go('/buyer/product/${Uri.encodeComponent(product.id)}'),
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
         width: 180,
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1528,6 +1535,7 @@ class _SimilarProductCard extends StatelessWidget {
             ),
           ),
         ]),
+        ),
       ),
     );
   }

@@ -48,10 +48,27 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
 
   bool _loading = true;
   bool _processing = false;
+  bool _loadingShipping = false;
+  List<Map<String, dynamic>> _shippingOptions = [];
+  String? _selectedShippingServiceId;
+  String? _quotedPostalCode;
+  String? _shippingError;
   String _selectedPaymentMethod = 'Pix';
 
   double get _itemPrice => NumberFormat().tryParse(widget.offer['price']?.toString() ?? '0')?.toDouble() ?? (widget.offer['price'] is num ? (widget.offer['price'] as num).toDouble() : 0.0);
-  double get _shippingPrice => widget.offer['freeShipping'] == true ? 0.0 : (NumberFormat().tryParse(widget.offer['shippingPrice']?.toString() ?? '0')?.toDouble() ?? (widget.offer['shippingPrice'] is num ? (widget.offer['shippingPrice'] as num).toDouble() : 0.0));
+  Map<String, dynamic>? get _selectedShippingOption {
+    for (final option in _shippingOptions) {
+      if (option['id']?.toString() == _selectedShippingServiceId) return option;
+    }
+    return null;
+  }
+
+  double get _selectedCarrierPrice {
+    final value = _selectedShippingOption?['price'];
+    return value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  double get _shippingPrice => widget.offer['freeShipping'] == true ? 0 : _selectedCarrierPrice;
   double get _totalPrice => _itemPrice + _shippingPrice;
 
   @override
@@ -145,7 +162,55 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
         _stateCtrl.text = addr['state']?.toString() ?? '';
       }
     } catch (_) {}
-    if (mounted) setState(() => _loading = false);
+    if (mounted) {
+      setState(() => _loading = false);
+      await _calculateShippingQuote();
+    }
+  }
+
+  Future<void> _calculateShippingQuote() async {
+    final postalCode = ViaCepService.cleanCep(_cepCtrl.text);
+    if (postalCode.length != 8) {
+      if (mounted) {
+        setState(() {
+          _shippingOptions = [];
+          _selectedShippingServiceId = null;
+          _quotedPostalCode = null;
+          _shippingError = 'Informe um CEP válido para calcular o frete.';
+        });
+      }
+      return;
+    }
+
+    setState(() {
+      _loadingShipping = true;
+      _shippingError = null;
+    });
+    try {
+      final options = await _api.calculateShippingQuote(
+        productId: widget.product.id,
+        offerId: widget.offer['id']?.toString() ?? '',
+        destinationPostalCode: postalCode,
+      );
+      if (!mounted) return;
+      setState(() {
+        _shippingOptions = options;
+        _quotedPostalCode = postalCode;
+        if (!options.any((option) => option['id']?.toString() == _selectedShippingServiceId)) {
+          _selectedShippingServiceId = options.isEmpty ? null : options.first['id']?.toString();
+        }
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _shippingOptions = [];
+        _selectedShippingServiceId = null;
+        _quotedPostalCode = null;
+        _shippingError = error.toString();
+      });
+    } finally {
+      if (mounted) setState(() => _loadingShipping = false);
+    }
   }
 
   Future<void> _confirmAndFinish() async {
@@ -157,6 +222,21 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
         ),
       );
       return;
+    }
+
+    final postalCode = ViaCepService.cleanCep(_cepCtrl.text);
+    if (_quotedPostalCode != postalCode || _selectedShippingOption == null) {
+      await _calculateShippingQuote();
+      if (!mounted) return;
+      if (_quotedPostalCode != postalCode || _selectedShippingOption == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_shippingError ?? 'Selecione uma opção de frete para continuar.'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+        return;
+      }
     }
 
     setState(() => _processing = true);
@@ -180,11 +260,13 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
       SessionService.instance.updateLocalUser(updatedProfile);
       await SessionService.instance.refresh();
 
-      // 2. Registra o pedido no backend
-      Map<String, dynamic> order = {};
-      try {
-        order = await _api.createOrder(widget.product.id, quantity: 1);
-      } catch (_) {}
+      // 2. Registra o pedido com a oferta e o serviço de frete selecionados.
+      final order = await _api.createOrder(
+        widget.product.id,
+        quantity: 1,
+        offerId: widget.offer['id']?.toString(),
+        shippingServiceId: _selectedShippingServiceId,
+      );
 
       if (mounted) {
         // 3. Vai para o Checkout Placeholder com os dados da transação
@@ -193,7 +275,7 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
           extra: {
             'product': widget.product,
             'offer': widget.offer,
-            'total': _totalPrice,
+            'total': order['total'] is num ? order['total'] : _totalPrice,
             'paymentMethod': _selectedPaymentMethod,
             'orderId': order['id'] ?? 'PED-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
             'address': {
@@ -419,6 +501,13 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
                       ),
                       onChanged: (val) {
                         final clean = ViaCepService.cleanCep(val);
+                        if (clean != _quotedPostalCode) {
+                          setState(() {
+                            _quotedPostalCode = null;
+                            _shippingOptions = [];
+                            _selectedShippingServiceId = null;
+                          });
+                        }
                         if (clean.length == 8 && !_searchingCep) {
                           _handleCepSearch(clean);
                         }
@@ -592,6 +681,8 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
             }).toList(),
           ),
           const SizedBox(height: 16),
+          _buildShippingOptions(),
+          const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 10),
 
@@ -600,7 +691,11 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
           const SizedBox(height: 6),
           _priceLine(
             'Frete:',
-            widget.offer['freeShipping'] == true ? 'Grátis' : _currency.format(_shippingPrice),
+            _selectedShippingOption == null
+                ? 'Calcule o frete'
+                : widget.offer['freeShipping'] == true
+                    ? 'Grátis'
+                    : _currency.format(_shippingPrice),
             isGreen: widget.offer['freeShipping'] == true,
           ),
           const SizedBox(height: 12),
@@ -611,7 +706,10 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Total:', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.grey900)),
-              Text(_currency.format(_totalPrice), style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF00A650))),
+              Text(
+                _selectedShippingOption == null ? '—' : _currency.format(_totalPrice),
+                style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF00A650)),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -619,6 +717,92 @@ class _BuyerCheckoutConfirmationScreenState extends State<BuyerCheckoutConfirmat
           _buildFinishButton(),
         ],
       ),
+    );
+  }
+
+  Widget _buildShippingOptions() {
+    final postalCode = ViaCepService.cleanCep(_cepCtrl.text);
+    final quoteMatchesAddress = postalCode.length == 8 && _quotedPostalCode == postalCode;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Opções de frete',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.grey800),
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _loadingShipping ? null : _calculateShippingQuote,
+              icon: const Icon(Icons.refresh, size: 16),
+              label: Text(_loadingShipping ? 'Calculando…' : 'Recalcular'),
+            ),
+          ],
+        ),
+        Text(
+          'Entrega para CEP ${_cepCtrl.text.trim().isEmpty ? 'não informado' : _cepCtrl.text.trim()}',
+          style: GoogleFonts.inter(fontSize: 11, color: AppColors.grey500),
+        ),
+        const SizedBox(height: 6),
+        if (_loadingShipping)
+          const LinearProgressIndicator()
+        else if (_shippingError != null)
+          Text(
+            _shippingError!,
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.error),
+          )
+        else if (!quoteMatchesAddress)
+          Text(
+            postalCode.length == 8
+                ? 'O CEP foi alterado. Recalcule para atualizar as opções.'
+                : 'Informe um CEP válido para consultar as transportadoras.',
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey600),
+          )
+        else if (_shippingOptions.isEmpty)
+          Text(
+            _shippingError ?? 'Nenhuma opção de frete disponível para este endereço.',
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.error),
+          )
+        else ...[
+          if (widget.offer['freeShipping'] == true)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                'O vendedor oferece frete grátis. Selecione uma transportadora.',
+                style: GoogleFonts.inter(fontSize: 11, color: AppColors.success),
+              ),
+            ),
+          ..._shippingOptions.take(8).map((option) {
+            final serviceId = option['id']?.toString() ?? '';
+            final company = option['company']?.toString() ?? 'Transportadora';
+            final service = option['name']?.toString() ?? 'Entrega';
+            final deliveryTime = option['deliveryTime'];
+            final deliveryLabel = deliveryTime is num
+                ? '${deliveryTime.toInt()} dia(s) úteis'
+                : 'Prazo a confirmar';
+            final priceLabel = widget.offer['freeShipping'] == true
+                ? 'Frete grátis'
+                : _currency.format(option['price'] is num ? option['price'] : 0);
+            return RadioListTile<String>(
+              value: serviceId,
+              groupValue: _selectedShippingServiceId,
+              onChanged: (value) => setState(() => _selectedShippingServiceId = value),
+              activeColor: AppColors.primary,
+              dense: true,
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                '$company · $service',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+              ),
+              subtitle: Text('$deliveryLabel · $priceLabel'),
+            );
+          }),
+        ],
+      ],
     );
   }
 

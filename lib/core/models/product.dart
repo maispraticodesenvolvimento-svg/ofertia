@@ -16,6 +16,10 @@ class Product {
     this.brand,
     this.condition,
     this.specs = const {},
+    this.width,
+    this.height,
+    this.length,
+    this.weight,
   });
 
   final String id;
@@ -36,6 +40,12 @@ class Product {
   final String? brand;
   final String? condition; // Novo, Usado, Seminovo
   final Map<String, String> specs; // Atributos dinâmicos: {'Memória RAM': '8GB', 'Armazenamento': '256GB SSD', etc}
+
+  // Medidas da embalagem para cotação de frete (cm e kg).
+  final double? width;
+  final double? height;
+  final double? length;
+  final double? weight;
 
   /// Retorna todas as imagens em DataURL disponíveis para exibição
   List<String> get allImages {
@@ -87,6 +97,10 @@ class Product {
       brand: json['brand']?.toString(),
       condition: json['condition']?.toString(),
       specs: specsMap,
+      width: json['width'] == null ? null : _asDouble(json['width']),
+      height: json['height'] == null ? null : _asDouble(json['height']),
+      length: json['length'] == null ? null : _asDouble(json['length']),
+      weight: json['weight'] == null ? null : _asDouble(json['weight']),
     );
   }
 
@@ -104,6 +118,10 @@ class Product {
         'brand': brand,
         'condition': condition,
         'specs': specs,
+        'width': width,
+        'height': height,
+        'length': length,
+        'weight': weight,
       };
 }
 

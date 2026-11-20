@@ -50,6 +50,10 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
   late final TextEditingController _oldPrice;
   late final TextEditingController _stock;
   late final TextEditingController _brand;
+  late final TextEditingController _packageWidth;
+  late final TextEditingController _packageHeight;
+  late final TextEditingController _packageLength;
+  late final TextEditingController _packageWeight;
 
   String? _selectedCategory;
   String _selectedCondition = 'Novo'; // 'Novo', 'Usado', 'Seminovo'
@@ -80,6 +84,10 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
     _oldPrice = TextEditingController(text: product?.oldPrice?.toStringAsFixed(2) ?? '');
     _stock = TextEditingController(text: product?.stock.toString() ?? '0');
     _brand = TextEditingController(text: product?.brand ?? '');
+    _packageWidth = TextEditingController(text: product?.width?.toString() ?? '');
+    _packageHeight = TextEditingController(text: product?.height?.toString() ?? '');
+    _packageLength = TextEditingController(text: product?.length?.toString() ?? '');
+    _packageWeight = TextEditingController(text: product?.weight?.toString() ?? '');
 
     _selectedCategory = product?.category.isNotEmpty == true ? product!.category : null;
     _selectedCondition = product?.condition?.isNotEmpty == true ? product!.condition! : 'Novo';
@@ -135,6 +143,10 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
     _oldPrice.dispose();
     _stock.dispose();
     _brand.dispose();
+    _packageWidth.dispose();
+    _packageHeight.dispose();
+    _packageLength.dispose();
+    _packageWeight.dispose();
     for (final r in _specRows) {
       r.dispose();
     }
@@ -142,6 +154,9 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
   }
 
   double? _parsePrice(String value) => double.tryParse(value.trim().replaceAll(',', '.'));
+
+  double? _parseMeasurement(String value) =>
+      double.tryParse(value.trim().replaceAll(',', '.'));
 
   Future<void> _pickImage() async {
     if (_images.length >= 6) {
@@ -261,6 +276,10 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
         brand: _brand.text.trim().isNotEmpty ? _brand.text.trim() : null,
         condition: _selectedCondition,
         specs: specsMap,
+        width: _parseMeasurement(_packageWidth.text),
+        height: _parseMeasurement(_packageHeight.text),
+        length: _parseMeasurement(_packageLength.text),
+        weight: _parseMeasurement(_packageWeight.text),
       );
 
       await _api.saveProduct(item, create: !_editing);
@@ -354,6 +373,12 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
 
                       // ── Ficha Técnica do Produto ─────────────────────────
                       _specsSection(),
+
+                      const SizedBox(height: 24),
+                      const Divider(color: AppColors.grey200),
+                      const SizedBox(height: 16),
+
+                      _shippingDimensionsSection(wide),
 
                       const SizedBox(height: 24),
                       const Divider(color: AppColors.grey200),
@@ -461,6 +486,80 @@ class _AdminProductFormScreenState extends State<AdminProductFormScreen> {
       onChanged: (val) {
         if (val != null) setState(() => _selectedCondition = val);
       },
+    );
+  }
+
+  Widget _shippingDimensionsSection(bool wide) {
+    String? positiveValue(String? raw, String label) {
+      final value = raw == null ? null : _parseMeasurement(raw);
+      if (value == null || value <= 0) return 'Informe $label maior que zero.';
+      return null;
+    }
+
+    final widthField = _field(
+      _packageWidth,
+      'Largura da embalagem (cm) *',
+      numeric: true,
+      validator: (value) => positiveValue(value, 'a largura'),
+    );
+    final heightField = _field(
+      _packageHeight,
+      'Altura da embalagem (cm) *',
+      numeric: true,
+      validator: (value) => positiveValue(value, 'a altura'),
+    );
+    final lengthField = _field(
+      _packageLength,
+      'Comprimento da embalagem (cm) *',
+      numeric: true,
+      validator: (value) => positiveValue(value, 'o comprimento'),
+    );
+    final weightField = _field(
+      _packageWeight,
+      'Peso da embalagem (kg) *',
+      numeric: true,
+      validator: (value) => positiveValue(value, 'o peso'),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Dados para cálculo do frete',
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.grey900,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Informe as medidas da embalagem pronta para envio. Usaremos esses dados na cotação do Melhor Envio.',
+          style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey600),
+        ),
+        const SizedBox(height: 14),
+        if (wide) ...[
+          Row(children: [
+            Expanded(child: widthField),
+            const SizedBox(width: 12),
+            Expanded(child: heightField),
+          ]),
+          const SizedBox(height: 12),
+          Row(children: [
+            Expanded(child: lengthField),
+            const SizedBox(width: 12),
+            Expanded(child: weightField),
+          ]),
+        ] else ...[
+          widthField,
+          const SizedBox(height: 12),
+          heightField,
+          const SizedBox(height: 12),
+          lengthField,
+          const SizedBox(height: 12),
+          weightField,
+        ],
+      ],
     );
   }
 

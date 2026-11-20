@@ -126,11 +126,40 @@ class ApiClient {
     return _readItems(_decodeResponse(response));
   }
 
-  Future<Map<String, dynamic>> createOrder(String productId, {int quantity = 1}) async {
+  Future<List<Map<String, dynamic>>> calculateShippingQuote({
+    required String productId,
+    required String offerId,
+    required String destinationPostalCode,
+    int quantity = 1,
+  }) async {
+    final response = await _client.post(
+      _uri('/api/shipping/quote'),
+      headers: _contentHeaders,
+      body: jsonEncode({
+        'productId': productId,
+        'offerId': offerId,
+        'destinationPostalCode': destinationPostalCode,
+        'quantity': quantity,
+      }),
+    );
+    return _readItems(_decodeResponse(response));
+  }
+
+  Future<Map<String, dynamic>> createOrder(
+    String productId, {
+    int quantity = 1,
+    String? offerId,
+    String? shippingServiceId,
+  }) async {
     final response = await _client.post(
       _uri('/api/orders'),
       headers: _contentHeaders,
-      body: jsonEncode({'productId': productId, 'quantity': quantity}),
+      body: jsonEncode({
+        'productId': productId,
+        'quantity': quantity,
+        if (offerId != null) 'offerId': offerId,
+        if (shippingServiceId != null) 'shippingServiceId': shippingServiceId,
+      }),
     );
     return _decodeResponse(response)['item'] as Map<String, dynamic>;
   }
