@@ -28,8 +28,16 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
   Future<_HomeData> _load() async {
     final api = ApiClient();
-    final results = await Future.wait([api.getProducts(), api.getBanners()]);
-    return _HomeData(results[0] as List<Product>, results[1] as List<Map<String, dynamic>>);
+    final results = await Future.wait([
+      api.getProducts(),
+      api.getBanners(),
+      api.getBanners(mobile: true),
+    ]);
+    return _HomeData(
+      results[0] as List<Product>,
+      results[1] as List<Map<String, dynamic>>,
+      results[2] as List<Map<String, dynamic>>,
+    );
   }
 
   @override
@@ -48,6 +56,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       final width = MediaQuery.sizeOf(context).width;
       final wide = width > 960;
       final compact = width <= 600;
+      final banners = compact && data.mobileBanners.isNotEmpty
+          ? data.mobileBanners
+          : data.banners;
       final firstProducts = products.take(6).toList();
       final remainingProducts = products.skip(6).toList();
       final horizontalPadding = wide ? 24.0 : 16.0;
@@ -57,8 +68,20 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            if (data.banners.isNotEmpty)
-              _BannerSlider(banners: data.banners, wide: wide),
+            if (banners.isNotEmpty)
+              compact
+                  ? _MobileBannerArea(
+                      child: _BannerSlider(
+                        banners: banners,
+                        wide: wide,
+                        compact: true,
+                      ),
+                    )
+                  : _BannerSlider(
+                      banners: banners,
+                      wide: wide,
+                      compact: false,
+                    ),
             Padding(
               padding: EdgeInsets.fromLTRB(
                 horizontalPadding,
@@ -406,23 +429,66 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 }
 
 // ---------------------------------------------------------------------------
-// Slide infinito estilo Mercado Livre:
-// - Largura total (edge-to-edge), sem margem, sem bordas arredondadas.
+// Carrossel infinito de banners:
+// - No mobile, centraliza o slide ativo e mostra parte dos vizinhos.
 // - Transição automática com timer (autoplay).
 // - Sem piscadas (gapless playback e renderização direta).
 // ---------------------------------------------------------------------------
+class _MobileBannerArea extends StatelessWidget {
+  const _MobileBannerArea({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const topGap = 5.0;
+        final bannerHeight = constraints.maxWidth / 2.15;
+
+        return SizedBox(
+          height: bannerHeight + topGap,
+          child: Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: bannerHeight / 2 + topGap,
+                child: const ColoredBox(color: AppColors.primary),
+              ),
+              Positioned(
+                top: topGap,
+                left: 0,
+                right: 0,
+                height: bannerHeight,
+                child: child,
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _BannerSlider extends StatefulWidget {
-  const _BannerSlider({required this.banners, required this.wide});
+  const _BannerSlider({
+    required this.banners,
+    required this.wide,
+    required this.compact,
+  });
 
   final List<Map<String, dynamic>> banners;
   final bool wide;
+  final bool compact;
 
   @override
   State<_BannerSlider> createState() => _BannerSliderState();
 }
 
 class _BannerSliderState extends State<_BannerSlider> {
-  late final PageController _controller;
+  late PageController _controller;
   Timer? _timer;
 
   // Para slide infinito usamos um multiplicador virtual
@@ -436,12 +502,41 @@ class _BannerSliderState extends State<_BannerSlider> {
   @override
   void initState() {
     super.initState();
-    _controller = PageController(
-      initialPage: _realCount > 0 ? _initialPage : 0,
-      viewportFraction: 1.0,
-    );
+    _controller = _createController();
     _currentReal = 0;
     _startTimer();
+  }
+
+  PageController _createController({int? initialPage}) => PageController(
+        initialPage: initialPage ?? (_realCount > 0 ? _initialPage : 0),
+        viewportFraction: widget.compact ? 0.88 : 1.0,
+      );
+
+  void _resetController() {
+    final currentPage = _controller.hasClients
+        ? (_controller.page?.round() ?? _currentReal)
+        : _currentReal;
+    final currentReal = _realCount == 0 ? 0 : currentPage % _realCount;
+    _controller.dispose();
+    _controller = _createController(
+      initialPage: _realCount == 0 ? 0 : _initialPage + currentReal,
+    );
+    _currentReal = currentReal;
+  }
+
+  @override
+  void didUpdateWidget(covariant _BannerSlider oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.compact != widget.compact ||
+        oldWidget.banners.length != widget.banners.length) {
+      _resetController();
+    }
+  }
+
+  @override
+  void reassemble() {
+    super.reassemble();
+    _resetController();
   }
 
   void _startTimer() {
@@ -497,17 +592,20 @@ class _BannerSliderState extends State<_BannerSlider> {
         children: [
           // ── PageView Full-width sem margens ou bordas ──
           AspectRatio(
-            aspectRatio: 10 / 3,
+            aspectRatio: widget.compact ? 2.15 : 10 / 3,
             child: PageView.builder(
               controller: _controller,
               itemCount: _realCount * _virtualMultiplier,
               onPageChanged: _onPageChanged,
               physics: const ClampingScrollPhysics(),
-              padEnds: false, // Garante que a página atual ocupe de ponta a ponta sem cortes
+              padEnds: true,
               itemBuilder: (context, virtualIndex) {
                 if (_realCount == 0) return const SizedBox.shrink();
                 final realIndex = virtualIndex % _realCount;
-                return _BannerItem(banner: widget.banners[realIndex]);
+                return _BannerItem(
+                  banner: widget.banners[realIndex],
+                  compact: widget.compact,
+                );
               },
             ),
           ),
@@ -576,33 +674,55 @@ class _BannerSliderState extends State<_BannerSlider> {
 }
 
 // ---------------------------------------------------------------------------
-// Item individual do banner (100% de largura, sem margem, sem raio de borda)
+// Item individual do banner
 // ---------------------------------------------------------------------------
 class _BannerItem extends StatelessWidget {
-  const _BannerItem({required this.banner});
+  const _BannerItem({required this.banner, required this.compact});
 
   final Map<String, dynamic> banner;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final category = banner['category']?.toString();
     final hasCategory = category != null && category.trim().isNotEmpty;
+    final image = ProductImage(
+      dataUrl: banner['dataUrl']?.toString(),
+      icon: Icons.campaign_outlined,
+      fit: BoxFit.cover,
+    );
+
+    void openBanner() {
+      if (hasCategory) {
+        context.go('/buyer/products?category=${Uri.encodeComponent(category.trim())}');
+      } else {
+        context.go('/buyer/products');
+      }
+    }
 
     return SizedBox.expand(
-      child: InkWell(
-        onTap: () {
-          if (hasCategory) {
-            context.go('/buyer/products?category=${Uri.encodeComponent(category.trim())}');
-          } else {
-            context.go('/buyer/products');
-          }
-        },
-        child: ProductImage(
-          dataUrl: banner['dataUrl']?.toString(),
-          icon: Icons.campaign_outlined,
-          fit: BoxFit.cover,
-        ),
-      ),
+      child: compact
+          ? Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2.5),
+              child: Material(
+                color: Colors.transparent,
+                clipBehavior: Clip.antiAlias,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: InkWell(
+                  onTap: openBanner,
+                  customBorder: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: image,
+                  ),
+                ),
+              ),
+            )
+          : InkWell(onTap: openBanner, child: image),
     );
   }
 }
@@ -636,9 +756,10 @@ class _NavButton extends StatelessWidget {
 // Modelo de dados da tela inicial
 // ---------------------------------------------------------------------------
 class _HomeData {
-  const _HomeData(this.products, this.banners);
+  const _HomeData(this.products, this.banners, this.mobileBanners);
   final List<Product> products;
   final List<Map<String, dynamic>> banners;
+  final List<Map<String, dynamic>> mobileBanners;
 }
 
 class _TrustCardData {

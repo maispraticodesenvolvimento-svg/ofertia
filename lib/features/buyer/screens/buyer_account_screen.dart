@@ -17,20 +17,36 @@ class BuyerAccountScreen extends StatefulWidget {
 class _BuyerAccountScreenState extends State<BuyerAccountScreen> {
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width <= 960;
     final session = SessionService.instance;
-    final user = session.currentUser ?? const <String, dynamic>{};
-    final email = user['email']?.toString() ?? 'E-mail não disponível';
-    final name = user['name']?.toString() ?? session.displayName;
+    final name = session.currentUser?['name']?.toString() ?? session.displayName;
     final isComplete = session.isProfileComplete;
     final addressText = session.formattedAddress;
 
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        Text(
-          'Minha conta',
-          style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.grey900),
-        ),
+        if (compact)
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Voltar ao início',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => context.go('/buyer/home'),
+                icon: const Icon(Icons.arrow_back, color: AppColors.grey800),
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Minha Conta',
+                style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.grey900),
+              ),
+            ],
+          )
+        else
+          Text(
+            'Minha conta',
+            style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.grey900),
+          ),
         const SizedBox(height: 18),
 
         // ── Card Superior com Usuário e Status de Cadastro ──
@@ -60,7 +76,6 @@ class _BuyerAccountScreenState extends State<BuyerAccountScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(name, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 19)),
-                        Text(email, style: GoogleFonts.inter(color: Colors.white70, fontSize: 13)),
                         const SizedBox(height: 6),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -128,7 +143,11 @@ class _BuyerAccountScreenState extends State<BuyerAccountScreen> {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: MediaQuery.sizeOf(context).width > 900 ? 2.2 : 1.5,
+          childAspectRatio: MediaQuery.sizeOf(context).width > 900
+              ? 2.2
+              : MediaQuery.sizeOf(context).width <= 700
+                  ? 1.2
+                  : 1.5,
           children: [
             _hubActionCard(
               title: 'Minhas Ofertas',
@@ -212,7 +231,12 @@ class _BuyerAccountScreenState extends State<BuyerAccountScreen> {
               child: Icon(icon, color: color, size: 20),
             ),
             const SizedBox(height: 12),
-            Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.grey900)),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.grey900),
+            ),
             Text(subtitle, style: GoogleFonts.inter(fontSize: 11, color: AppColors.grey500), maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
         ),

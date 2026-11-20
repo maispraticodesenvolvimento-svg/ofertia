@@ -179,14 +179,20 @@ class ApiClient {
     _decodeResponse(response);
   }
 
-  Future<List<Map<String, dynamic>>> getBanners() async {
-    final response = await _client.get(_uri('/api/banners'));
+  Future<List<Map<String, dynamic>>> getBanners({bool mobile = false}) async {
+    final uri = _uri('/api/banners').replace(
+      queryParameters: mobile ? {'variant': 'mobile'} : null,
+    );
+    final response = await _client.get(uri);
     return _readItems(_decodeResponse(response));
   }
 
-  Future<void> deleteBanner(String id) async {
+  Future<void> deleteBanner(String id, {bool mobile = false}) async {
+    final uri = _uri('/api/banners/${Uri.encodeComponent(id)}').replace(
+      queryParameters: mobile ? {'variant': 'mobile'} : null,
+    );
     final response = await _client.delete(
-      _uri('/api/banners/${Uri.encodeComponent(id)}'),
+      uri,
     );
     _decodeResponse(response);
   }

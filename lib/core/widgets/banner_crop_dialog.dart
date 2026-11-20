@@ -7,19 +7,28 @@ import 'package:image/image.dart' as img;
 
 import '../theme/app_theme.dart';
 
-/// Crop dialog Flutter-nativo. Sempre exporta JPEG 1800×540 (proporção 10:3).
+/// Crop dialog Flutter-nativo para banners web (10:3) e mobile (16:9).
 /// Funciona em web, Android e iOS sem dependências JS.
 class BannerCropDialog extends StatefulWidget {
-  const BannerCropDialog({super.key, required this.sourceBytes});
+  const BannerCropDialog({
+    super.key,
+    required this.sourceBytes,
+    this.mobile = false,
+  });
 
   final Uint8List sourceBytes;
+  final bool mobile;
 
   /// Exibe o dialog e retorna os bytes recortados, ou null se cancelado.
-  static Future<Uint8List?> show(BuildContext context, Uint8List bytes) =>
+  static Future<Uint8List?> show(
+    BuildContext context,
+    Uint8List bytes, {
+    bool mobile = false,
+  }) =>
       showDialog<Uint8List>(
         context: context,
         barrierDismissible: false,
-        builder: (_) => BannerCropDialog(sourceBytes: bytes),
+        builder: (_) => BannerCropDialog(sourceBytes: bytes, mobile: mobile),
       );
 
   @override
@@ -27,10 +36,10 @@ class BannerCropDialog extends StatefulWidget {
 }
 
 class _BannerCropDialogState extends State<BannerCropDialog> {
-  // Proporção alvo: 10:3 → 1800×540 px
-  static const double _ratio = 10.0 / 3.0;
-  static const int _outW = 1800;
-  static const int _outH = 540;
+  // Web: 10:3 → 1800×540 px. Mobile: 16:9 → 1600×900 px.
+  double get _ratio => widget.mobile ? 16.0 / 9.0 : 10.0 / 3.0;
+  int get _outW => widget.mobile ? 1600 : 1800;
+  int get _outH => widget.mobile ? 900 : 540;
 
   img.Image? _decoded;
   bool _loading = true;
@@ -118,7 +127,7 @@ class _BannerCropDialogState extends State<BannerCropDialog> {
       final w = (_cropBox.width * scaleX).round().clamp(1, src.width - x);
       final h = (_cropBox.height * scaleY).round().clamp(1, src.height - y);
 
-      // Recorte + redimensionamento para 1800×540
+      // Recorte + redimensionamento para a resolução da variante selecionada.
       final cropped = img.copyCrop(src, x: x, y: y, width: w, height: h);
       final resized = img.copyResize(
         cropped,
@@ -164,7 +173,7 @@ class _BannerCropDialogState extends State<BannerCropDialog> {
                   child: Text('Recortar Banner',
                       style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700)),
                 ),
-                _Badge('10:3 · 1800×540 px'),
+                _Badge(widget.mobile ? '16:9 · 1600×900 px' : '10:3 · 1800×540 px'),
               ]),
               const SizedBox(height: 14),
 
@@ -229,7 +238,7 @@ class _BannerCropDialogState extends State<BannerCropDialog> {
   Widget _buildCropBox() {
     return LayoutBuilder(builder: (context, constraints) {
       final w = constraints.maxWidth;
-      final h = w / _ratio; // mantém proporção 10:3
+      final h = w / _ratio;
       _cropBox = Size(w, h);
 
       final imgSize = _imgDisplaySize();

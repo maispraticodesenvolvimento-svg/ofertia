@@ -22,6 +22,7 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
   bool _loadingList = true;
   String? _listError;
   List<Map<String, dynamic>> _items = [];
+  List<Map<String, dynamic>> _mobileItems = [];
   List<Map<String, dynamic>> _categories = [];
 
   // Categoria selecionada para associar ao novo banner
@@ -50,12 +51,14 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
     try {
       final results = await Future.wait([
         _api.getBanners(),
+        _api.getBanners(mobile: true),
         _api.getCategories(),
       ]);
       if (!mounted) return;
       setState(() {
         _items = List<Map<String, dynamic>>.from(results[0]);
-        _categories = List<Map<String, dynamic>>.from(results[1]);
+        _mobileItems = List<Map<String, dynamic>>.from(results[1]);
+        _categories = List<Map<String, dynamic>>.from(results[2]);
         _loadingList = false;
       });
     } catch (e) {
@@ -68,7 +71,7 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
   }
 
   // ── Upload com recorte ───────────────────────────────────────────────────
-  Future<void> _addBanner() async {
+  Future<void> _addBanner({required bool mobile}) async {
     final file = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 95,
@@ -89,15 +92,19 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
 
     setState(() => _preparingImage = false);
 
-    // Abre o modal de recorte 10:3 (1800x540)
-    final croppedBytes = await BannerCropDialog.show(context, rawBytes);
+    // Abre o recorte na proporção adequada para navegador ou mobile.
+    final croppedBytes = await BannerCropDialog.show(
+      context,
+      rawBytes,
+      mobile: mobile,
+    );
     if (croppedBytes == null) return; // Usuário cancelou
 
     if (!mounted) return;
     setState(() => _uploading = true);
     try {
       await _api.uploadImage(
-        collection: 'banners',
+        collection: mobile ? 'mobileBanners' : 'banners',
         bytes: croppedBytes,
         contentType: 'image/jpeg',
         category: _selectedCategory,
@@ -105,7 +112,12 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
       await _loadData(); // recarrega lista após upload
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Banner cadastrado com sucesso!'), backgroundColor: AppColors.success),
+          SnackBar(
+            content: Text(mobile
+                ? 'Banner mobile cadastrado com sucesso!'
+                : 'Banner web cadastrado com sucesso!'),
+            backgroundColor: AppColors.success,
+          ),
         );
       }
     } catch (error) {
@@ -119,12 +131,15 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
   }
 
   // ── Exclusão com feedback imediato ───────────────────────────────────────
-  Future<void> _delete(String id) async {
+  Future<void> _delete(String id, {required bool mobile}) async {
     setState(() => _deleting.add(id));
     try {
-      await _api.deleteBanner(id);
+      await _api.deleteBanner(id, mobile: mobile);
       if (!mounted) return;
-      setState(() => _items.removeWhere((b) => b['id'].toString() == id));
+      setState(() {
+        (mobile ? _mobileItems : _items)
+            .removeWhere((b) => b['id'].toString() == id);
+      });
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -194,15 +209,24 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
             ),
           ),
           FilledButton.icon(
-            onPressed: (_uploading || _preparingImage) ? null : _addBanner,
+            onPressed: (_uploading || _preparingImage)
+                ? null
+                : () => _addBanner(mobile: false),
             icon: (_uploading || _preparingImage)
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                : const Icon(Icons.crop_outlined),
+                : const Icon(Icons.desktop_windows_outlined),
             label: Text(_preparingImage
-                ? 'Carregando imagem…'
+                ? 'Preparando imagem…'
                 : _uploading
                     ? 'Enviando…'
-                    : 'Selecionar imagem e recortar banner'),
+                    : 'Adicionar banner web'),
+          ),
+          OutlinedButton.icon(
+            onPressed: (_uploading || _preparingImage)
+                ? null
+                : () => _addBanner(mobile: true),
+            icon: const Icon(Icons.smartphone_outlined),
+            label: const Text('Adicionar banner mobile'),
           ),
         ]),
       ),
@@ -214,71 +238,18 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
         const Center(child: Padding(padding: EdgeInsets.all(28), child: CircularProgressIndicator()))
       else if (_listError != null)
         _emptyBox(_listError!)
-      else if (_items.isEmpty)
+      else if (_items.isEmpty && _mobileItems.isEmpty)
         _emptyBox('Nenhum banner cadastrado.')
-      else
-        ..._items.map((banner) {
-          final id = banner['id'].toString();
-          final isDeleting = _deleting.contains(id);
-          final categoryName = banner['category']?.toString();
-          final hasCategory = categoryName != null && categoryName.isNotEmpty;
-
-          return Card(
-            clipBehavior: Clip.antiAlias,
-            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-              AspectRatio(
-                aspectRatio: 10 / 3,
-                child: ProductImage(
-                  dataUrl: banner['dataUrl']?.toString(),
-                  icon: Icons.campaign_outlined,
-                ),
-              ),
-              ListTile(
-                title: Row(
-                  children: [
-                    if (hasCategory) ...[
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.primarySurface,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.primaryBorder),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.link_rounded, size: 14, color: AppColors.primary),
-                            const SizedBox(width: 4),
-                            Text(
-                              categoryName,
-                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ] else
-                      Text('Sem categoria vinculada', style: GoogleFonts.inter(fontSize: 13, color: AppColors.grey500)),
-                  ],
-                ),
-                subtitle: Text('ID: $id'),
-                trailing: isDeleting
-                    ? const Padding(
-                        padding: EdgeInsets.all(12),
-                        child: SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.error),
-                        ),
-                      )
-                    : IconButton(
-                        onPressed: () => _delete(id),
-                        icon: const Icon(Icons.delete_outline, color: AppColors.error),
-                        tooltip: 'Excluir banner',
-                      ),
-              ),
-            ]),
-          );
-        }),
+      else ...[
+        if (_items.isNotEmpty) ...[
+          _sectionHeading('Banners para navegador'),
+          ..._items.map((banner) => _bannerCard(banner, mobile: false)),
+        ],
+        if (_mobileItems.isNotEmpty) ...[
+          _sectionHeading('Banners para mobile'),
+          ..._mobileItems.map((banner) => _bannerCard(banner, mobile: true)),
+        ],
+      ],
     ]);
   }
 
@@ -287,6 +258,81 @@ class _AdminBannersScreenState extends State<AdminBannersScreen> {
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
         child: Text(text, textAlign: TextAlign.center, style: GoogleFonts.inter(color: AppColors.grey600)),
       );
+
+  Widget _sectionHeading(String title) => Padding(
+        padding: const EdgeInsets.only(top: 8, bottom: 6),
+        child: Text(
+          title,
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.grey900,
+          ),
+        ),
+      );
+
+  Widget _bannerCard(Map<String, dynamic> banner, {required bool mobile}) {
+    final id = banner['id'].toString();
+    final isDeleting = _deleting.contains(id);
+    final categoryName = banner['category']?.toString();
+    final hasCategory = categoryName != null && categoryName.isNotEmpty;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        AspectRatio(
+          aspectRatio: mobile ? 16 / 9 : 10 / 3,
+          child: ProductImage(
+            dataUrl: banner['dataUrl']?.toString(),
+            icon: Icons.campaign_outlined,
+          ),
+        ),
+        ListTile(
+          title: Row(
+            children: [
+              if (hasCategory)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.primarySurface,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.primaryBorder),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.link_rounded, size: 14, color: AppColors.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        categoryName,
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Text('Sem categoria vinculada', style: GoogleFonts.inter(fontSize: 13, color: AppColors.grey500)),
+            ],
+          ),
+          subtitle: Text('${mobile ? 'Mobile' : 'Navegador'} · ID: $id'),
+          trailing: isDeleting
+              ? const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.error),
+                  ),
+                )
+              : IconButton(
+                  onPressed: () => _delete(id, mobile: mobile),
+                  icon: const Icon(Icons.delete_outline, color: AppColors.error),
+                  tooltip: 'Excluir banner',
+                ),
+        ),
+      ]),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -319,9 +365,18 @@ class _ProportionCard extends StatelessWidget {
 
         const _ProportionRow(
           icon: Icons.desktop_windows_outlined,
-          label: 'Web e Mobile (unificado)',
+          label: 'Banners para navegador',
           resolution: '1800 × 540 px',
-          ratio: '10:3  (≈ 3,33:1)',
+          ratio: '10:3',
+          color: AppColors.primary,
+        ),
+
+        const SizedBox(height: 10),
+        const _ProportionRow(
+          icon: Icons.smartphone_outlined,
+          label: 'Banners para mobile',
+          resolution: '1600 × 900 px',
+          ratio: '16:9',
           color: AppColors.primary,
         ),
 
@@ -334,7 +389,7 @@ class _ProportionCard extends StatelessWidget {
           const SizedBox(width: 6),
           Expanded(
             child: Text(
-              'A imagem é recortada na proporção 10:3 e se ajusta perfeitamente em Web e Celular sem cortes.',
+              'Cada imagem é recortada separadamente para a proporção do dispositivo, evitando cortes importantes na vitrine.',
               style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey600),
             ),
           ),
