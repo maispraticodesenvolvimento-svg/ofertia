@@ -556,14 +556,23 @@ class _TrustCardData {
   final String subtitle;
 }
 
-class _FeaturedProductCard extends StatelessWidget {
+class _FeaturedProductCard extends StatefulWidget {
   const _FeaturedProductCard({required this.product, required this.width});
 
   final Product product;
   final double width;
 
   @override
+  State<_FeaturedProductCard> createState() => _FeaturedProductCardState();
+}
+
+class _FeaturedProductCardState extends State<_FeaturedProductCard> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    final product = widget.product;
+    final width = widget.width;
     final price = NumberFormat.currency(
       locale: 'pt_BR',
       symbol: 'R\$',
@@ -581,6 +590,12 @@ class _FeaturedProductCard extends StatelessWidget {
           side: const BorderSide(color: AppColors.grey200),
         ),
         child: InkWell(
+          onHover: (hovering) {
+            if (_isHovered != hovering) {
+              setState(() => _isHovered = hovering);
+            }
+          },
+          hoverColor: Colors.transparent,
           onTap: () => context.go('/buyer/product/${product.id}'),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -605,7 +620,7 @@ class _FeaturedProductCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
                           fontSize: 12,
-                          color: AppColors.grey800,
+                          color: _isHovered ? AppColors.primary : AppColors.grey800,
                           height: 1.35,
                         ),
                       ),
@@ -672,13 +687,21 @@ class _FeaturedProductCard extends StatelessWidget {
   }
 }
 
-class _InlineProductTile extends StatelessWidget {
+class _InlineProductTile extends StatefulWidget {
   const _InlineProductTile({required this.product});
 
   final Product product;
 
   @override
+  State<_InlineProductTile> createState() => _InlineProductTileState();
+}
+
+class _InlineProductTileState extends State<_InlineProductTile> {
+  bool _isHovered = false;
+
+  @override
   Widget build(BuildContext context) {
+    final product = widget.product;
     final price = NumberFormat.currency(
       locale: 'pt_BR',
       symbol: 'R\$',
@@ -689,6 +712,12 @@ class _InlineProductTile extends StatelessWidget {
     return SizedBox(
       width: 176,
       child: InkWell(
+        onHover: (hovering) {
+          if (_isHovered != hovering) {
+            setState(() => _isHovered = hovering);
+          }
+        },
+        hoverColor: Colors.transparent,
         onTap: () => context.go('/buyer/product/${product.id}'),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -708,7 +737,7 @@ class _InlineProductTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
                 fontSize: 12,
-                color: AppColors.grey800,
+                color: _isHovered ? AppColors.primary : AppColors.grey800,
                 height: 1.35,
               ),
             ),
