@@ -47,7 +47,10 @@ class _ProductCardState extends State<ProductCard> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ProductImage(dataUrl: product.imageDataUrl),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+                    child: ProductImage(dataUrl: product.imageDataUrl),
+                  ),
                   if (oldPrice != null && oldPrice > product.price)
                     Positioned(
                       top: 10,
@@ -75,7 +78,7 @@ class _ProductCardState extends State<ProductCard> {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

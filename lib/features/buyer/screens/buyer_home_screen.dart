@@ -199,102 +199,114 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
       ),
     ];
 
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: wide ? 24 : 16, vertical: 24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x08000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: wide ? 760 : 260),
+        child: Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: wide ? 16 : 12,
+            vertical: wide ? 12 : 8,
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Text(
-            'Cuidamos de cada compra',
-            style: GoogleFonts.inter(
-              fontSize: wide ? 22 : 18,
-              fontWeight: FontWeight.w800,
-              color: AppColors.grey900,
-            ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.grey200),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x08000000),
+                blurRadius: 8,
+                offset: Offset(0, 1),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-          if (wide)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: cards.map((c) => Expanded(child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                child: _buildTrustCard(c),
-              ))).toList(),
-            )
-          else
-            Column(
-              children: cards.map((c) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _buildTrustCard(c),
-              )).toList(),
-            ),
-          const SizedBox(height: 16),
-          Text(
-            'Diante de qualquer eventualidade e a qualquer momento, sua compra está garantida.',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: AppColors.grey600,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+          child: wide
+              ? Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Cuidamos de cada compra',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.grey900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: cards
+                          .map(
+                            (card) => Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                child: _buildTrustCard(card),
+                              ),
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  ],
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: cards.map(_buildTrustIcon).toList(),
+                ),
+        ),
       ),
     );
   }
 
   Widget _buildTrustCard(_TrustCardData data) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFBF4D9), // Amarelo suave idêntico ao Mercado Livre
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFE600),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(data.icon, color: Colors.black87, size: 24),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildTrustIcon(data),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                data.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.grey900,
+                ),
+              ),
+              Text(
+                data.subtitle,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  color: AppColors.grey500,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            data.title,
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.grey900,
-            ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            data.subtitle,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: AppColors.grey700,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
+  Widget _buildTrustIcon(_TrustCardData data) {
+    return Tooltip(
+      message: data.title,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: const BoxDecoration(
+          color: Color(0xFFFFE600),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(data.icon, color: Colors.black87, size: 20),
+      ),
+    );
+  }
   Widget _empty(String message, IconData icon) => Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
@@ -603,14 +615,17 @@ class _FeaturedProductCardState extends State<_FeaturedProductCard> {
               SizedBox(
                 height: 144,
                 width: double.infinity,
-                child: ProductImage(
-                  dataUrl: product.imageDataUrl,
-                  fit: BoxFit.contain,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+                  child: ProductImage(
+                    dataUrl: product.imageDataUrl,
+                    fit: BoxFit.contain,
+                  ),
                 ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -624,7 +639,7 @@ class _FeaturedProductCardState extends State<_FeaturedProductCard> {
                           height: 1.35,
                         ),
                       ),
-                      const Spacer(),
+                      const SizedBox(height: 8),
                       if (hasDiscount)
                         Text(
                           NumberFormat.currency(
@@ -722,12 +737,16 @@ class _InlineProductTileState extends State<_InlineProductTile> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            const SizedBox(height: 8),
             SizedBox(
               height: 164,
               width: double.infinity,
-              child: ProductImage(
-                dataUrl: product.imageDataUrl,
-                fit: BoxFit.contain,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+                child: ProductImage(
+                  dataUrl: product.imageDataUrl,
+                  fit: BoxFit.contain,
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -765,6 +784,7 @@ class _InlineProductTileState extends State<_InlineProductTile> {
               overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(fontSize: 11, color: AppColors.grey500),
             ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
