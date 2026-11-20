@@ -45,10 +45,11 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
       final data = snapshot.data!;
       final products = data.products;
-      final firstProducts = products.take(6).toList();
-      final remainingProducts = products.skip(6).toList();
       final width = MediaQuery.sizeOf(context).width;
       final wide = width > 960;
+      final compact = width <= 600;
+      final firstProducts = products.take(6).toList();
+      final remainingProducts = products.skip(6).toList();
       final horizontalPadding = wide ? 24.0 : 16.0;
 
       return Container(
@@ -67,49 +68,113 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
               ),
               child: _buildTrustSection(wide),
             ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                horizontalPadding,
-                20,
-                horizontalPadding,
-                28,
+            if (compact) ...[
+              Padding(
+                padding: const EdgeInsets.only(top: 20),
+                child: products.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: _empty(
+                          'Ainda não há produtos em destaque.',
+                          Icons.inventory_2_outlined,
+                        ),
+                      )
+                    : _buildFeaturedProducts(
+                        firstProducts,
+                        width - horizontalPadding * 2,
+                        compact: true,
+                      ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (products.isEmpty)
-                    _empty(
-                      'Ainda não há produtos em destaque.',
-                      Icons.inventory_2_outlined,
-                    )
-                  else
-                    _buildFeaturedProducts(
-                      firstProducts,
-                      width - horizontalPadding * 2,
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  remainingProducts.isNotEmpty ? 24 : 20,
+                  horizontalPadding,
+                  28,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (remainingProducts.isNotEmpty)
+                      _buildMoreProducts(remainingProducts),
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.center,
+                      child: TextButton(
+                        onPressed: () => context.go('/buyer/products'),
+                        child: const Text('Ver todos os produtos'),
+                      ),
                     ),
-
-                  if (remainingProducts.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    _buildMoreProducts(remainingProducts),
                   ],
-                  const SizedBox(height: 20),
-                  Align(
-                    alignment: Alignment.center,
-                    child: TextButton(
-                      onPressed: () => context.go('/buyer/products'),
-                      child: const Text('Ver todos os produtos'),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ] else
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  20,
+                  horizontalPadding,
+                  28,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (products.isEmpty)
+                      _empty(
+                        'Ainda não há produtos em destaque.',
+                        Icons.inventory_2_outlined,
+                      )
+                    else
+                      _buildFeaturedProducts(
+                        firstProducts,
+                        width - horizontalPadding * 2,
+                        compact: false,
+                      ),
+                    if (remainingProducts.isNotEmpty) ...[
+                      const SizedBox(height: 24),
+                      _buildMoreProducts(remainingProducts),
+                    ],
+                    const SizedBox(height: 20),
+                    Align(
+                      alignment: Alignment.center,
+                      child: TextButton(
+                        onPressed: () => context.go('/buyer/products'),
+                        child: const Text('Ver todos os produtos'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       );
     },
   );
 
-  Widget _buildFeaturedProducts(List<Product> products, double availableWidth) {
+  Widget _buildFeaturedProducts(
+    List<Product> products,
+    double availableWidth, {
+    required bool compact,
+  }) {
+    if (compact) {
+      const spacing = 12.0;
+      const cardHeight = 280.0;
+      final cardWidth = (availableWidth - spacing) / 2;
+      return SizedBox(
+        height: cardHeight,
+        child: ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          scrollDirection: Axis.horizontal,
+          itemCount: products.length,
+          separatorBuilder: (_, _) => const SizedBox(width: spacing),
+          itemBuilder: (context, index) => _FeaturedProductCard(
+            product: products[index],
+            width: cardWidth,
+          ),
+        ),
+      );
+    }
+
     const spacing = 12.0;
     final cardWidth = ((availableWidth - spacing * 5) / 6)
         .clamp(174.0, 220.0)
@@ -184,17 +249,17 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     final cards = [
       _TrustCardData(
         icon: Icons.local_shipping_rounded,
-        title: 'Envio garantido',
+        title: 'Envio Garantido',
         subtitle: 'chegamos sempre',
       ),
       _TrustCardData(
         icon: Icons.attach_money_rounded,
-        title: 'Pagamento seguro',
+        title: 'Pagamento Seguro',
         subtitle: 'protegemos seu dinheiro',
       ),
       _TrustCardData(
         icon: Icons.replay_rounded,
-        title: 'Devolução grátis',
+        title: 'Devolução Grátis',
         subtitle: 'até 30 dias',
       ),
     ];
@@ -206,7 +271,7 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
           width: double.infinity,
           padding: EdgeInsets.symmetric(
             horizontal: wide ? 16 : 12,
-            vertical: wide ? 12 : 8,
+            vertical: wide ? 12 : 4,
           ),
           decoration: BoxDecoration(
             color: Colors.white,
@@ -249,7 +314,9 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
                 )
               : Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: cards.map(_buildTrustIcon).toList(),
+                  children: cards
+                      .map((card) => _buildTrustIcon(card, showLabel: true))
+                      .toList(),
                 ),
         ),
       ),
@@ -293,17 +360,35 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
     );
   }
 
-  Widget _buildTrustIcon(_TrustCardData data) {
+  Widget _buildTrustIcon(_TrustCardData data, {bool showLabel = false}) {
     return Tooltip(
       message: data.title,
-      child: Container(
-        width: 36,
-        height: 36,
-        decoration: const BoxDecoration(
-          color: Color(0xFFFFE600),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(data.icon, color: Colors.black87, size: 20),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFE600),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(data.icon, color: Colors.black87, size: 20),
+          ),
+          if (showLabel) ...[
+            const SizedBox(height: 2),
+            Text(
+              data.title,
+              maxLines: 1,
+              softWrap: false,
+              style: GoogleFonts.inter(
+                fontSize: 7,
+                fontWeight: FontWeight.w500,
+                color: AppColors.grey900,
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

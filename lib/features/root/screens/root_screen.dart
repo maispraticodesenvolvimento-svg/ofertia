@@ -182,7 +182,7 @@ class _BuyerLayout extends StatelessWidget {
         backgroundColor: AppColors.background,
         body: Column(
           children: [
-            _MobileBuyerAppBar(),
+            _MobileBuyerAppBar(compact: MediaQuery.sizeOf(context).width <= 600),
             Expanded(child: child),
           ],
         ),
@@ -193,14 +193,72 @@ class _BuyerLayout extends StatelessWidget {
 }
 
 class _MobileBuyerAppBar extends StatelessWidget {
+  const _MobileBuyerAppBar({required this.compact});
+
+  final bool compact;
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: SessionService.instance,
       builder: (context, _) {
         final session = SessionService.instance;
-        final greeting = session.displayName;
         final isAuth = session.isAuthenticated;
+
+        if (compact) {
+          return Container(
+            padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
+            color: AppColors.primary,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 12, 8),
+              child: Row(
+                children: [
+                  Text(
+                    'Ofertia',
+                    style: GoogleFonts.inter(
+                      color: Colors.white,
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Container(
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: TextField(
+                        textAlignVertical: TextAlignVertical.center,
+                        decoration: InputDecoration(
+                          hintText: 'O que você está procurando?',
+                          hintStyle: GoogleFonts.inter(color: AppColors.grey500, fontSize: 11),
+                          prefixIcon: const Icon(Icons.search, color: AppColors.grey500, size: 17),
+                          suffixIcon: const Icon(Icons.qr_code_scanner, color: AppColors.grey500, size: 17),
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.only(left: 8),
+                    constraints: const BoxConstraints(minWidth: 32, minHeight: 40),
+                    onPressed: () => NotificationsPanel.show(context),
+                    icon: const Icon(Icons.notifications_none, color: Colors.white, size: 24),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final greeting = session.displayName;
 
         return Container(
           padding: EdgeInsets.only(
