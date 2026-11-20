@@ -5,8 +5,28 @@ import '../../../core/services/session_service.dart';
 import '../../../core/theme/app_theme.dart';
 import 'notifications_panel.dart';
 
-class BuyerTopBar extends StatelessWidget {
+class BuyerTopBar extends StatefulWidget {
   const BuyerTopBar({super.key});
+
+  @override
+  State<BuyerTopBar> createState() => _BuyerTopBarState();
+}
+
+class _BuyerTopBarState extends State<BuyerTopBar> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _search(String value) {
+    final query = value.trim();
+    context.go(query.isEmpty
+        ? '/buyer/products'
+        : '/buyer/products?q=${Uri.encodeQueryComponent(query)}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +64,10 @@ class BuyerTopBar extends StatelessWidget {
                           borderRadius: BorderRadius.horizontal(left: Radius.circular(6)),
                         ),
                         child: TextField(
+                          controller: _searchController,
                           textAlignVertical: TextAlignVertical.center,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: _search,
                           decoration: InputDecoration(
                             hintText: 'O que você está procurando?',
                             hintStyle: GoogleFonts.inter(color: AppColors.grey400, fontSize: 13),
@@ -58,20 +81,24 @@ class BuyerTopBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    Container(
-                      height: 38,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      decoration: const BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.horizontal(right: Radius.circular(6)),
-                      ),
-                      child: const Center(
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: Colors.white, size: 16),
-                            SizedBox(width: 6),
-                            Text('Buscar', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
-                          ],
+                    Material(
+                      color: AppColors.primaryLight,
+                      borderRadius: const BorderRadius.horizontal(right: Radius.circular(6)),
+                      child: InkWell(
+                        onTap: () => _search(_searchController.text),
+                        borderRadius: const BorderRadius.horizontal(right: Radius.circular(6)),
+                        child: Container(
+                          height: 38,
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: const Center(
+                            child: Row(
+                              children: [
+                                Icon(Icons.search, color: Colors.white, size: 16),
+                                SizedBox(width: 6),
+                                Text('Buscar', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                              ],
+                            ),
+                          ),
                         ),
                       ),
                     ),

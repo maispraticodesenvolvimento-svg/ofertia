@@ -192,10 +192,30 @@ class _BuyerLayout extends StatelessWidget {
   }
 }
 
-class _MobileBuyerAppBar extends StatelessWidget {
+class _MobileBuyerAppBar extends StatefulWidget {
   const _MobileBuyerAppBar({required this.compact});
 
   final bool compact;
+
+  @override
+  State<_MobileBuyerAppBar> createState() => _MobileBuyerAppBarState();
+}
+
+class _MobileBuyerAppBarState extends State<_MobileBuyerAppBar> {
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _search(String value) {
+    final query = value.trim();
+    context.go(query.isEmpty
+        ? '/buyer/products'
+        : '/buyer/products?q=${Uri.encodeQueryComponent(query)}');
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -205,7 +225,7 @@ class _MobileBuyerAppBar extends StatelessWidget {
         final session = SessionService.instance;
         final isAuth = session.isAuthenticated;
 
-        if (compact) {
+        if (widget.compact) {
           return Container(
             padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
             color: AppColors.primary,
@@ -230,11 +250,17 @@ class _MobileBuyerAppBar extends StatelessWidget {
                         borderRadius: BorderRadius.circular(5),
                       ),
                       child: TextField(
+                        controller: _searchController,
                         textAlignVertical: TextAlignVertical.center,
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: _search,
                         decoration: InputDecoration(
                           hintText: 'O que você está procurando?',
                           hintStyle: GoogleFonts.inter(color: AppColors.grey500, fontSize: 11),
-                          prefixIcon: const Icon(Icons.search, color: AppColors.grey500, size: 17),
+                          prefixIcon: IconButton(
+                            onPressed: () => _search(_searchController.text),
+                            icon: const Icon(Icons.search, color: AppColors.grey500, size: 17),
+                          ),
                           suffixIcon: const Icon(Icons.qr_code_scanner, color: AppColors.grey500, size: 17),
                           border: InputBorder.none,
                           enabledBorder: InputBorder.none,
@@ -331,10 +357,16 @@ class _MobileBuyerAppBar extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: TextField(
+                    controller: _searchController,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: _search,
                     decoration: InputDecoration(
                       hintText: 'O que você está procurando?',
                       hintStyle: GoogleFonts.inter(color: AppColors.grey500, fontSize: 14),
-                      prefixIcon: const Icon(Icons.search, color: AppColors.grey500),
+                      prefixIcon: IconButton(
+                        onPressed: () => _search(_searchController.text),
+                        icon: const Icon(Icons.search, color: AppColors.grey500),
+                      ),
                       suffixIcon: const Icon(Icons.qr_code_scanner, color: AppColors.grey500),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,

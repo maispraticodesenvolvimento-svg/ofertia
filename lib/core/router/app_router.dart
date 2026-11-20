@@ -58,6 +58,7 @@ final GoRouter appRouter = GoRouter(
           pageBuilder: (context, state) => NoTransitionPage(
             child: BuyerProductsScreen(
               initialCategory: state.uri.queryParameters['category'],
+              initialQuery: state.uri.queryParameters['q'],
             ),
           ),
         ),

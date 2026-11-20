@@ -7,8 +7,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/product_card.dart';
 
 class BuyerProductsScreen extends StatefulWidget {
-  const BuyerProductsScreen({super.key, this.initialCategory});
+  const BuyerProductsScreen({super.key, this.initialCategory, this.initialQuery});
   final String? initialCategory;
+  final String? initialQuery;
 
   @override
   State<BuyerProductsScreen> createState() => _BuyerProductsScreenState();
@@ -16,24 +17,28 @@ class BuyerProductsScreen extends StatefulWidget {
 
 class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
   final _api = ApiClient();
-  final _search = TextEditingController();
   late Future<List<Product>> _future;
   String? _category;
+  String _query = '';
 
   @override
   void initState() {
     super.initState();
     _category = widget.initialCategory;
-    _future = _api.getProducts(category: _category);
+    _query = widget.initialQuery ?? '';
+    _future = _api.getProducts(category: _category, query: _query);
   }
 
   @override
-  void dispose() {
-    _search.dispose();
-    super.dispose();
+  void didUpdateWidget(covariant BuyerProductsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialCategory != widget.initialCategory ||
+        oldWidget.initialQuery != widget.initialQuery) {
+      _category = widget.initialCategory;
+      _query = widget.initialQuery ?? '';
+      _future = _api.getProducts(category: _category, query: _query);
+    }
   }
-
-  void _load() => setState(() => _future = _api.getProducts(category: _category, query: _search.text));
 
   @override
   Widget build(BuildContext context) {
@@ -46,17 +51,6 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
         return ListView(padding: EdgeInsets.all(wide ? 24 : 16), children: [
           Text('Produtos', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.grey900)),
           const SizedBox(height: 16),
-          TextField(
-            controller: _search,
-            onSubmitted: (_) => _load(),
-            decoration: InputDecoration(
-              hintText: 'Buscar produtos',
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: IconButton(onPressed: _load, icon: const Icon(Icons.arrow_forward)),
-              border: const OutlineInputBorder(),
-            ),
-          ),
-          const SizedBox(height: 12),
           if (categories.isNotEmpty)
             SizedBox(
               height: 42,
@@ -99,7 +93,7 @@ class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
         selected: selected,
         onSelected: (_) => setState(() {
           _category = value;
-          _future = _api.getProducts(category: value, query: _search.text);
+          _future = _api.getProducts(category: value, query: _query);
         }),
       ),
     );
