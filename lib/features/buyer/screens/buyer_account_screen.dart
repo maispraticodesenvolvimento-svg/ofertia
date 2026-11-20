@@ -128,7 +128,7 @@ class _BuyerAccountScreenState extends State<BuyerAccountScreen> {
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
-          childAspectRatio: 1.5,
+          childAspectRatio: MediaQuery.sizeOf(context).width > 900 ? 2.2 : 1.5,
           children: [
             _hubActionCard(
               title: 'Minhas Ofertas',
@@ -171,8 +171,8 @@ class _BuyerAccountScreenState extends State<BuyerAccountScreen> {
               icon: Icons.edit_note_rounded,
               color: const Color(0xFF3A86FF),
               onTap: () async {
-                await CompleteProfileDialog.ensureComplete(context);
-                setState(() {});
+                final updated = await CompleteProfileDialog.editProfile(context);
+                if (updated && mounted) setState(() {});
               },
             ),
           ],
@@ -211,7 +211,7 @@ class _BuyerAccountScreenState extends State<BuyerAccountScreen> {
               ),
               child: Icon(icon, color: color, size: 20),
             ),
-            const Spacer(),
+            const SizedBox(height: 12),
             Text(title, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.grey900)),
             Text(subtitle, style: GoogleFonts.inter(fontSize: 11, color: AppColors.grey500), maxLines: 1, overflow: TextOverflow.ellipsis),
           ],

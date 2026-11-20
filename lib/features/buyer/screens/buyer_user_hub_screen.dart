@@ -263,7 +263,7 @@ class _BuyerUserHubScreenState extends State<BuyerUserHubScreen> with SingleTick
                 ),
                 FilledButton.tonalIcon(
                   onPressed: () async {
-                    final res = await CompleteProfileDialog.ensureComplete(context);
+                    final res = await CompleteProfileDialog.editProfile(context);
                     if (res) setState(() {});
                   },
                   icon: const Icon(Icons.edit_outlined, size: 16),

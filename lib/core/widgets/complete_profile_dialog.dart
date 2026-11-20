@@ -34,6 +34,19 @@ class CompleteProfileDialog extends StatefulWidget {
     return result == true && SessionService.instance.isProfileComplete;
   }
 
+  /// Opens the profile form even when the current profile is already complete.
+  static Future<bool> editProfile(BuildContext context) async {
+    final isComplete = SessionService.instance.isProfileComplete;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => CompleteProfileDialog(
+        title: isComplete ? 'Editar dados e endereço' : 'Completar cadastro',
+        subtitle: 'Atualize seus dados pessoais e endereço de entrega.',
+      ),
+    );
+    return result == true;
+  }
+
   @override
   State<CompleteProfileDialog> createState() => _CompleteProfileDialogState();
 }

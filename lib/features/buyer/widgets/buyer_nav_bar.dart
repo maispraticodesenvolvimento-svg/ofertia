@@ -14,7 +14,10 @@ class BuyerNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+    final uri = GoRouterState.of(context).uri;
+    final location = uri.toString();
+    final hasSelectedCategory =
+        uri.queryParameters['category']?.trim().isNotEmpty ?? false;
 
     return Container(
       height: 44,
@@ -37,7 +40,7 @@ class BuyerNavBar extends StatelessWidget {
             '/buyer/products',
             location.contains('/buyer/products'),
           ),
-          _CategoryNavMenu(isActive: location.contains('/buyer/products')),
+          _CategoryNavMenu(isActive: hasSelectedCategory),
           _NavItem(
             'Ofertas',
             Icons.local_offer_outlined,
