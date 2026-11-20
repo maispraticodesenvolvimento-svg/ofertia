@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/services/session_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/backend_status_banner.dart';
 import '../../admin/widgets/admin_sidebar.dart';
 import '../../admin/widgets/admin_top_bar.dart';
 import '../../buyer/widgets/buyer_nav_bar.dart';
@@ -24,11 +26,16 @@ class RootScreen extends StatelessWidget {
     final isAdmin = _isAdminRoute(context);
     final isWide = MediaQuery.of(context).size.width > 960;
 
-    if (isAdmin) {
-      return _AdminLayout(child: child, isWide: isWide);
-    } else {
-      return _BuyerLayout(child: child, isWide: isWide);
-    }
+    return Column(
+      children: [
+        const BackendStatusBanner(),
+        Expanded(
+          child: isAdmin
+              ? _AdminLayout(child: child, isWide: isWide)
+              : _BuyerLayout(child: child, isWide: isWide),
+        ),
+      ],
+    );
   }
 }
 
@@ -102,23 +109,6 @@ class _MobileAdminAppBar extends StatelessWidget implements PreferredSizeWidget 
             IconButton(
               icon: const Icon(Icons.notifications_outlined, color: Colors.white),
                 onPressed: () => NotificationsPanel.show(context),
-            ),
-            Positioned(
-              right: 8,
-              top: 8,
-              child: Container(
-                width: 16,
-                height: 16,
-                decoration: const BoxDecoration(
-                  color: Colors.red,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: Text('3',
-                    style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
             ),
           ],
         ),
@@ -205,82 +195,102 @@ class _BuyerLayout extends StatelessWidget {
 class _MobileBuyerAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top,
-      ),
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [AppColors.primaryDark, AppColors.primary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return ListenableBuilder(
+      listenable: SessionService.instance,
+      builder: (context, _) {
+        final session = SessionService.instance;
+        final greeting = session.displayName;
+        final isAuth = session.isAuthenticated;
+
+        return Container(
+          padding: EdgeInsets.only(
+            top: MediaQuery.of(context).padding.top,
+          ),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [AppColors.primaryDark, AppColors.primary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Ofertia',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
+                    InkWell(
+                      onTap: () {
+                        if (isAuth) {
+                          context.go('/buyer/account');
+                        } else {
+                          final current = GoRouterState.of(context).uri.toString();
+                          context.push('/login?redirect=${Uri.encodeComponent(current)}');
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(8),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Ofertia',
+                            style: GoogleFonts.inter(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          Text(
+                            isAuth ? 'Olá, $greeting' : 'Olá, Visitante (Entrar)',
+                            style: GoogleFonts.inter(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          Text(
+                            'Boas compras, um dia incrível para você!',
+                            style: GoogleFonts.inter(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                      Text(
-                      'Olá, usuário',
-                      style: GoogleFonts.inter(
-                        color: Colors.white.withOpacity(0.9),
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                      ),
-                    ),
-                    Text(
-                      'Boas compras, um dia incrível para você!',
-                      style: GoogleFonts.inter(
-                        color: Colors.white.withOpacity(0.7),
-                        fontSize: 11,
-                      ),
+                    GestureDetector(
+                      onTap: () => NotificationsPanel.show(context),
+                      child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
                     ),
                   ],
                 ),
-                GestureDetector(
-                  onTap: () => NotificationsPanel.show(context),
-                  child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 26),
+                const SizedBox(height: 12),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: TextField(
+                    decoration: InputDecoration(
+                      hintText: 'O que você está procurando?',
+                      hintStyle: GoogleFonts.inter(color: AppColors.grey500, fontSize: 14),
+                      prefixIcon: const Icon(Icons.search, color: AppColors.grey500),
+                      suffixIcon: const Icon(Icons.qr_code_scanner, color: AppColors.grey500),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
                 ),
+                const SizedBox(height: 4),
               ],
             ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'O que você está procurando?',
-                  hintStyle: GoogleFonts.inter(color: AppColors.grey500, fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: AppColors.grey500),
-                  suffixIcon: const Icon(Icons.qr_code_scanner, color: AppColors.grey500),
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 4),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

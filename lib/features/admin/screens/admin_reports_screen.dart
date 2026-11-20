@@ -1,136 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+
+import '../../../core/services/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 
-class AdminReportsScreen extends StatelessWidget {
+class AdminReportsScreen extends StatefulWidget {
   const AdminReportsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Relatórios', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.grey900)),
-          Text('Acompanhe as métricas e relatórios da plataforma.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.grey500)),
-          const SizedBox(height: 24),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.grey200),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Receita mensal', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.grey900)),
-                      const SizedBox(height: 20),
-                      SizedBox(
-                        height: 200,
-                        child: LineChart(
-                          LineChartData(
-                            lineBarsData: [
-                              LineChartBarData(
-                                spots: const [
-                                  FlSpot(0, 180), FlSpot(1, 220), FlSpot(2, 195),
-                                  FlSpot(3, 260), FlSpot(4, 310), FlSpot(5, 280),
-                                  FlSpot(6, 340), FlSpot(7, 380), FlSpot(8, 360),
-                                  FlSpot(9, 420), FlSpot(10, 400), FlSpot(11, 450),
-                                ],
-                                isCurved: true,
-                                color: AppColors.primary,
-                                barWidth: 2.5,
-                                belowBarData: BarAreaData(
-                                  show: true,
-                                  color: AppColors.primary.withOpacity(0.08),
-                                ),
-                                dotData: const FlDotData(show: false),
-                              ),
-                            ],
-                            gridData: FlGridData(
-                              show: true,
-                              drawVerticalLine: false,
-                              getDrawingHorizontalLine: (v) => FlLine(color: AppColors.grey100, strokeWidth: 1),
-                            ),
-                            borderData: FlBorderData(show: false),
-                            titlesData: FlTitlesData(
-                              leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 44,
-                                getTitlesWidget: (v, m) => Text('${v.toInt()}k', style: GoogleFonts.inter(fontSize: 10, color: AppColors.grey400)))),
-                              bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 20,
-                                getTitlesWidget: (v, m) {
-                                  final months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-                                  return Text(months[v.toInt()], style: GoogleFonts.inter(fontSize: 10, color: AppColors.grey400));
-                                })),
-                              rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                              topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 1,
-                child: Column(
-                  children: [
-                    _ReportCard('Vendas totais', 'R\$ 2.840.320', '+18%'),
-                    const SizedBox(height: 12),
-                    _ReportCard('Novos usuários', '3.241', '+24%'),
-                    const SizedBox(height: 12),
-                    _ReportCard('Taxa de conversão', '3.8%', '+0.4%'),
-                    const SizedBox(height: 12),
-                    _ReportCard('Ticket médio', 'R\$ 189,90', '+7%'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  State<AdminReportsScreen> createState() => _AdminReportsScreenState();
 }
 
-class _ReportCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final String change;
-
-  const _ReportCard(this.label, this.value, this.change);
+class _AdminReportsScreenState extends State<AdminReportsScreen> {
+  late Future<Map<String, dynamic>> _summary;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.grey200),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey500)),
-          const SizedBox(height: 4),
-          Text(value, style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.grey900)),
-          Row(children: [
-            const Icon(Icons.arrow_upward, size: 13, color: AppColors.success),
-            const SizedBox(width: 2),
-            Text(change, style: GoogleFonts.inter(fontSize: 12, color: AppColors.success, fontWeight: FontWeight.w600)),
-          ]),
-        ],
-      ),
-    );
+  void initState() {
+    super.initState();
+    _summary = ApiClient().getAdminSummary();
   }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<Map<String, dynamic>>(
+        future: _summary,
+        builder: (context, snapshot) {
+          final data = snapshot.data;
+          final wide = MediaQuery.sizeOf(context).width > 780;
+          return ListView(padding: const EdgeInsets.all(24), children: [
+            Text('Relatórios', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.grey900)),
+            Text('Resumo calculado com os dados existentes no banco.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.grey500)),
+            const SizedBox(height: 22),
+            if (snapshot.connectionState == ConnectionState.waiting)
+              const Center(child: Padding(padding: EdgeInsets.all(32), child: CircularProgressIndicator()))
+            else if (snapshot.hasError)
+              _empty(snapshot.error.toString())
+            else
+              GridView.count(
+                crossAxisCount: wide ? 3 : 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: 1.55,
+                children: [
+                  _report('Receita', NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((data?['revenue'] as num?)?.toDouble() ?? 0)),
+                  _report('Pedidos pagos', '${data?['paidOrders'] ?? 0}'),
+                  _report('Ticket médio', NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$').format((data?['averageOrder'] as num?)?.toDouble() ?? 0)),
+                  _report('Produtos cadastrados', '${data?['products'] ?? 0}'),
+                  _report('Clientes', '${data?['customers'] ?? 0}'),
+                  _report('Vendedores', '${data?['vendors'] ?? 0}'),
+                ],
+              ),
+          ]);
+        },
+      );
+
+  Widget _report(String label, String value) => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: AppColors.grey200)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          Text(label, style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey500)),
+          Text(value, style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.grey900)),
+        ]),
+      );
+
+  Widget _empty(String text) => Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+        child: Text(text, textAlign: TextAlign.center, style: GoogleFonts.inter(color: AppColors.grey600)),
+      );
 }

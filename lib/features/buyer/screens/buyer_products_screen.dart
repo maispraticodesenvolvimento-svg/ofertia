@@ -1,137 +1,113 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../../../core/models/product.dart';
+import '../../../core/services/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/product_card.dart';
 
-class BuyerProductsScreen extends StatelessWidget {
-  const BuyerProductsScreen({super.key});
+class BuyerProductsScreen extends StatefulWidget {
+  const BuyerProductsScreen({super.key, this.initialCategory});
+  final String? initialCategory;
 
-  static const _categories = [
-    'Todos', 'Eletrônicos', 'Casa e Decoração', 'Moda', 'Eletrodomésticos', 'Esporte',
-  ];
+  @override
+  State<BuyerProductsScreen> createState() => _BuyerProductsScreenState();
+}
 
-  static const _products = [
-    {'emoji': '📱', 'name': 'Smartphone Delta X1 256GB', 'price': 'R\$ 1.899,90', 'rating': 4, 'reviews': '326'},
-    {'emoji': '🎧', 'name': 'Fone Bluetooth com ANC', 'price': 'R\$ 349,90', 'rating': 5, 'reviews': '1.421'},
-    {'emoji': '⌚', 'name': 'Smartwatch GPS Monitor', 'price': 'R\$ 499,90', 'rating': 4, 'reviews': '876'},
-    {'emoji': '💻', 'name': 'Notebook Ultraslim 14"', 'price': 'R\$ 3.299,00', 'rating': 5, 'reviews': '234'},
-    {'emoji': '🍳', 'name': 'Fritadeira Air Fryer 4L', 'price': 'R\$ 289,90', 'rating': 4, 'reviews': '1.234'},
-    {'emoji': '👟', 'name': 'Tênis Run Pro Unissex', 'price': 'R\$ 289,00', 'rating': 4, 'reviews': '963'},
-    {'emoji': '📷', 'name': 'Câmera Digital 24 MP', 'price': 'R\$ 1.499,00', 'rating': 4, 'reviews': '456'},
-    {'emoji': '🎮', 'name': 'Controle Gamer Wireless', 'price': 'R\$ 199,90', 'rating': 5, 'reviews': '2.341'},
-    {'emoji': '🪑', 'name': 'Cadeira Office Executive', 'price': 'R\$ 1.299,00', 'rating': 4, 'reviews': '789'},
-    {'emoji': '🧴', 'name': 'Kit Skincare Premium', 'price': 'R\$ 149,90', 'rating': 5, 'reviews': '567'},
-  ];
+class _BuyerProductsScreenState extends State<BuyerProductsScreen> {
+  final _api = ApiClient();
+  final _search = TextEditingController();
+  late Future<List<Product>> _future;
+  String? _category;
+
+  @override
+  void initState() {
+    super.initState();
+    _category = widget.initialCategory;
+    _future = _api.getProducts(category: _category);
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  void _load() => setState(() => _future = _api.getProducts(category: _category, query: _search.text));
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width > 960;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.all(isWide ? 24 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Produtos', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.grey900)),
-          const SizedBox(height: 12),
-          // Category filter
-          SizedBox(
-            height: 36,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _categories.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final selected = i == 0;
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.primary : Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: selected ? AppColors.primary : AppColors.grey300),
-                  ),
-                  child: Center(
-                    child: Text(_categories[i],
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        color: selected ? Colors.white : AppColors.grey600,
-                        fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                      ),
-                    ),
-                  ),
-                );
-              },
+    final wide = MediaQuery.sizeOf(context).width > 960;
+    return FutureBuilder<List<Product>>(
+      future: _future,
+      builder: (context, snapshot) {
+        final items = snapshot.data ?? const <Product>[];
+        final categories = items.map((p) => p.category).toSet().toList()..sort();
+        return ListView(padding: EdgeInsets.all(wide ? 24 : 16), children: [
+          Text('Produtos', style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.grey900)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _search,
+            onSubmitted: (_) => _load(),
+            decoration: InputDecoration(
+              hintText: 'Buscar produtos',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: IconButton(onPressed: _load, icon: const Icon(Icons.arrow_forward)),
+              border: const OutlineInputBorder(),
             ),
           ),
-          const SizedBox(height: 20),
-          GridView.count(
-            crossAxisCount: isWide ? 5 : 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: isWide ? 0.7 : 0.72,
-            children: _products.map((p) => GestureDetector(
-              onTap: () => context.go('/buyer/product/1'),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.grey200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: AppColors.grey50,
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                            ),
-                            child: Center(child: Text(p['emoji'] as String, style: const TextStyle(fontSize: 52))),
-                          ),
-                          const Positioned(
-                            top: 8, right: 8,
-                            child: Icon(Icons.favorite_border, size: 18, color: AppColors.grey400),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(p['name'] as String,
-                            style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey800),
-                            maxLines: 2, overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(children: [
-                            ...List.generate(5, (i) => Icon(
-                              i < (p['rating'] as int) ? Icons.star : Icons.star_border,
-                              size: 11, color: const Color(0xFFFFB300),
-                            )),
-                            const SizedBox(width: 3),
-                            Text('(${p['reviews']})', style: GoogleFonts.inter(fontSize: 9, color: AppColors.grey400)),
-                          ]),
-                          const SizedBox(height: 4),
-                          Text(p['price'] as String,
-                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.grey900),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+          const SizedBox(height: 12),
+          if (categories.isNotEmpty)
+            SizedBox(
+              height: 42,
+              child: ListView(scrollDirection: Axis.horizontal, children: [
+                _categoryChip('Todos', null),
+                ...categories.map((category) => _categoryChip(category, category)),
+              ]),
+            ),
+          const SizedBox(height: 16),
+          if (snapshot.connectionState == ConnectionState.waiting)
+            const Center(child: Padding(padding: EdgeInsets.all(36), child: CircularProgressIndicator()))
+          else if (snapshot.hasError)
+            _empty(snapshot.error.toString(), icon: Icons.cloud_off_outlined)
+          else if (items.isEmpty)
+            _empty('Ainda não há produtos disponíveis.', icon: Icons.inventory_2_outlined)
+          else
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: items.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: wide ? 4 : 2,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
+                childAspectRatio: wide ? 0.76 : 0.68,
               ),
-            )).toList(),
-          ),
-        ],
+              itemBuilder: (_, index) => ProductCard(product: items[index]),
+            ),
+        ]);
+      },
+    );
+  }
+
+  Widget _categoryChip(String label, String? value) {
+    final selected = _category == value;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        label: Text(label),
+        selected: selected,
+        onSelected: (_) => setState(() {
+          _category = value;
+          _future = _api.getProducts(category: value, query: _search.text);
+        }),
       ),
     );
   }
+
+  Widget _empty(String message, {required IconData icon}) => Container(
+        padding: const EdgeInsets.all(36),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14)),
+        child: Column(children: [Icon(icon, size: 36, color: AppColors.grey400), const SizedBox(height: 10), Text(message, textAlign: TextAlign.center, style: GoogleFonts.inter(color: AppColors.grey600))]),
+      );
 }

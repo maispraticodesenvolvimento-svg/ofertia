@@ -1,29 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../../../core/services/api_client.dart';
 import '../../../core/theme/app_theme.dart';
 
-/// Abrir o painel de notificações via chave de Scaffold ou Overlay:
-///   NotificationsPanel.show(context);
 class NotificationsPanel extends StatefulWidget {
   const NotificationsPanel({super.key});
 
-  /// Exibe o painel deslizando da direita.
   static void show(BuildContext context) {
     showGeneralDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Fechar notificações',
       barrierColor: Colors.black54,
-      transitionDuration: const Duration(milliseconds: 280),
-      pageBuilder: (ctx, anim, secondaryAnim) =>
-          const NotificationsPanel(),
-      transitionBuilder: (ctx, anim, secondaryAnim, child) {
-        const begin = Offset(1.0, 0.0);
-        const end = Offset.zero;
-        final tween =
-            Tween(begin: begin, end: end).chain(CurveTween(curve: Curves.easeOutCubic));
-        return SlideTransition(position: anim.drive(tween), child: child);
-      },
+      transitionDuration: const Duration(milliseconds: 240),
+      pageBuilder: (_, __, ___) => const NotificationsPanel(),
+      transitionBuilder: (_, animation, __, child) => SlideTransition(
+        position: Tween<Offset>(begin: const Offset(1, 0), end: Offset.zero)
+            .chain(CurveTween(curve: Curves.easeOutCubic))
+            .animate(animation),
+        child: child,
+      ),
     );
   }
 
@@ -32,367 +29,101 @@ class NotificationsPanel extends StatefulWidget {
 }
 
 class _NotificationsPanelState extends State<NotificationsPanel> {
-  final _notifications = <_NotifItem>[
-    _NotifItem(
-      icon: Icons.local_offer_outlined,
-      color: AppColors.primary,
-      title: 'Nova oferta disponível!',
-      body: 'Smartphone Delta X1 com 20% de desconto por tempo limitado.',
-      time: 'há 5 min',
-      isRead: false,
-    ),
-    _NotifItem(
-      icon: Icons.shopping_cart_outlined,
-      color: AppColors.success,
-      title: 'Pedido confirmado',
-      body: 'Seu pedido #4821 foi confirmado e está sendo preparado.',
-      time: 'há 32 min',
-      isRead: false,
-    ),
-    _NotifItem(
-      icon: Icons.handshake_outlined,
-      color: const Color(0xFF7C3AED),
-      title: 'Proposta recebida',
-      body: 'Um usuário fez uma proposta para o produto "Cadeira Office".',
-      time: 'há 1 hora',
-      isRead: false,
-    ),
-    _NotifItem(
-      icon: Icons.star_outline,
-      color: const Color(0xFFFFB300),
-      title: 'Nova avaliação',
-      body: 'Você recebeu uma avaliação 5 estrelas de um comprador.',
-      time: 'há 3 horas',
-      isRead: true,
-    ),
-    _NotifItem(
-      icon: Icons.inventory_2_outlined,
-      color: AppColors.grey500,
-      title: 'Produto publicado',
-      body: 'Seu produto "Tênis Run Pro" foi publicado com sucesso.',
-      time: 'há 1 dia',
-      isRead: true,
-    ),
-    _NotifItem(
-      icon: Icons.local_shipping_outlined,
-      color: const Color(0xFF0891B2),
-      title: 'Pedido enviado',
-      body: 'Seu pedido #4715 foi enviado. Previsão: 2 dias úteis.',
-      time: 'há 2 dias',
-      isRead: true,
-    ),
-  ];
-
-  int get _unreadCount => _notifications.where((n) => !n.isRead).length;
+  late Future<List<Map<String, dynamic>>> _notifications;
 
   @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          width: 380,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x22000000),
-                blurRadius: 24,
-                offset: Offset(-4, 0),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              _buildHeader(context),
-              if (_unreadCount > 0) _buildUnreadBanner(),
-              Expanded(child: _buildList()),
-              _buildFooter(context),
-            ],
-          ),
-        ),
-      ),
-    );
+  void initState() {
+    super.initState();
+    _notifications = ApiClient().getNotifications();
   }
 
-  Widget _buildHeader(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top + 12,
-        left: 20,
-        right: 12,
-        bottom: 16,
-      ),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: AppColors.grey100)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppColors.primarySurface,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.notifications_outlined,
-                color: AppColors.primary, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Notificações',
-                  style: GoogleFonts.inter(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.grey900,
-                  ),
-                ),
-                if (_unreadCount > 0)
-                  Text(
-                    '$_unreadCount não lidas',
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: AppColors.grey500),
-                  ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: () => Navigator.of(context).pop(),
-            icon: const Icon(Icons.close, color: AppColors.grey500),
-            tooltip: 'Fechar',
-          ),
-        ],
-      ),
-    );
+  void _reload() => setState(() => _notifications = ApiClient().getNotifications());
+
+  Future<void> _markRead(String id) async {
+    try {
+      await ApiClient().markNotificationRead(id);
+      _reload();
+    } catch (error) {
+      if (mounted) _message(error.toString());
+    }
   }
 
-  Widget _buildUnreadBanner() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.primarySurface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primaryBorder),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.circle, color: AppColors.primary, size: 8),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Você tem $_unreadCount notificações não lidas.',
-              style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w500),
-            ),
-          ),
-          GestureDetector(
-            onTap: _markAllRead,
-            child: Text(
-              'Marcar todas como lidas',
-              style: GoogleFonts.inter(
-                  fontSize: 11,
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w700,
-                  decoration: TextDecoration.underline),
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> _delete(String id) async {
+    try {
+      await ApiClient().deleteNotification(id);
+      _reload();
+    } catch (error) {
+      if (mounted) _message(error.toString());
+    }
   }
 
-  Widget _buildList() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      itemCount: _notifications.length,
-      itemBuilder: (ctx, i) {
-        final n = _notifications[i];
-        return _NotificationTile(
-          item: n,
-          onTap: () => setState(() => n.isRead = true),
-          onDismiss: () => setState(() => _notifications.removeAt(i)),
-        );
-      },
-    );
-  }
-
-  Widget _buildFooter(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppColors.grey100)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: _markAllRead,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.grey700,
-                side: const BorderSide(color: AppColors.grey200),
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: Text('Marcar todas como lidas',
-                  style: GoogleFonts.inter(fontSize: 12)),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              child: Text('Ver central',
-                  style: GoogleFonts.inter(
-                      fontSize: 12, fontWeight: FontWeight.w600)),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _markAllRead() {
-    setState(() {
-      for (final n in _notifications) {
-        n.isRead = true;
-      }
-    });
-  }
-}
-
-// ─── Tile ─────────────────────────────────────────────────────────────────────
-
-class _NotificationTile extends StatelessWidget {
-  final _NotifItem item;
-  final VoidCallback onTap;
-  final VoidCallback onDismiss;
-
-  const _NotificationTile({
-    required this.item,
-    required this.onTap,
-    required this.onDismiss,
-  });
+  void _message(String value) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(value)));
 
   @override
-  Widget build(BuildContext context) {
-    return Dismissible(
-      key: UniqueKey(),
-      direction: DismissDirection.endToStart,
-      background: Container(
+  Widget build(BuildContext context) => Align(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        color: AppColors.error.withOpacity(0.1),
-        child: const Icon(Icons.delete_outline, color: AppColors.error),
-      ),
-      onDismissed: (_) => onDismiss(),
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: item.isRead ? Colors.white : AppColors.primarySurface.withOpacity(0.5),
-            border: const Border(
-                bottom: BorderSide(color: AppColors.grey100)),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Icon badge
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: item.color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(item.icon, color: item.color, size: 18),
+        child: Material(
+          color: Colors.white,
+          child: SizedBox(
+            width: 380,
+            height: double.infinity,
+            child: Column(children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 14, 12, 14),
+                child: Row(children: [
+                  const Icon(Icons.notifications_outlined, color: AppColors.primary),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text('Notificações', style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 16))),
+                  IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
+                  IconButton(onPressed: () => Navigator.of(context).pop(), icon: const Icon(Icons.close)),
+                ]),
               ),
-              const SizedBox(width: 12),
+              const Divider(height: 1),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            item.title,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: item.isRead
-                                  ? FontWeight.w500
-                                  : FontWeight.w700,
-                              color: AppColors.grey900,
-                            ),
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: _notifications,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
+                    if (snapshot.hasError) return _empty(snapshot.error.toString(), Icons.cloud_off_outlined);
+                    final items = snapshot.data ?? const <Map<String, dynamic>>[];
+                    if (items.isEmpty) return _empty('Nenhuma notificação.', Icons.notifications_none);
+                    return ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        final item = items[index];
+                        final id = item['id'].toString();
+                        final read = item['read'] == true;
+                        return Dismissible(
+                          key: ValueKey(id),
+                          direction: DismissDirection.endToStart,
+                          onDismissed: (_) => _delete(id),
+                          background: Container(alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), color: AppColors.error.withValues(alpha: 0.1), child: const Icon(Icons.delete_outline, color: AppColors.error)),
+                          child: ListTile(
+                            tileColor: read ? Colors.white : AppColors.primarySurface.withValues(alpha: 0.5),
+                            leading: Icon(read ? Icons.notifications_none : Icons.notifications_active_outlined, color: AppColors.primary),
+                            title: Text(item['title']?.toString() ?? '', style: GoogleFonts.inter(fontWeight: read ? FontWeight.w500 : FontWeight.w700, fontSize: 13)),
+                            subtitle: Text(item['body']?.toString() ?? '', style: GoogleFonts.inter(fontSize: 12, color: AppColors.grey600)),
+                            onTap: read ? null : () => _markRead(id),
                           ),
-                        ),
-                        if (!item.isRead)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      item.body,
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.grey500,
-                        height: 1.4,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      item.time,
-                      style: GoogleFonts.inter(
-                          fontSize: 11, color: AppColors.grey400),
-                    ),
-                  ],
+                        );
+                      },
+                    );
+                  },
                 ),
               ),
-            ],
+            ]),
           ),
         ),
-      ),
-    );
-  }
-}
+      );
 
-// ─── Model ────────────────────────────────────────────────────────────────────
-
-class _NotifItem {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String body;
-  final String time;
-  bool isRead;
-
-  _NotifItem({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.body,
-    required this.time,
-    required this.isRead,
-  });
+  Widget _empty(String text, IconData icon) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Icon(icon, size: 38, color: AppColors.grey400),
+            const SizedBox(height: 10),
+            Text(text, textAlign: TextAlign.center, style: GoogleFonts.inter(color: AppColors.grey600)),
+          ]),
+        ),
+      );
 }

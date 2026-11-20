@@ -63,6 +63,18 @@ class AdminSidebar extends StatelessWidget {
                   route: '/admin/products',
                   isActive: location.contains('/admin/products'),
                 ),
+                _SidebarItem(
+                  icon: Icons.category_outlined,
+                  label: 'Categorias',
+                  route: '/admin/categories',
+                  isActive: location.contains('/admin/categories'),
+                ),
+                _SidebarItem(
+                  icon: Icons.campaign_outlined,
+                  label: 'Banners',
+                  route: '/admin/banners',
+                  isActive: location.contains('/admin/banners'),
+                ),
 
                 _SidebarItem(
                   icon: Icons.handshake_outlined,
@@ -81,6 +93,12 @@ class AdminSidebar extends StatelessWidget {
                   label: 'Clientes',
                   route: '/admin/clients',
                   isActive: location.contains('/admin/clients'),
+                ),
+                _SidebarItem(
+                  icon: Icons.store_outlined,
+                  label: 'Vendedores',
+                  route: '/admin/vendors',
+                  isActive: location.contains('/admin/vendors'),
                 ),
                 _SidebarItem(
                   icon: Icons.bar_chart_outlined,

@@ -9,6 +9,8 @@ class AdminTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const email = 'Conta administrativa';
+    final initials = email.isEmpty ? 'A' : email.substring(0, email.length > 1 ? 2 : 1).toUpperCase();
     return Container(
       height: 60,
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -61,34 +63,9 @@ class AdminTopBar extends StatelessWidget {
           ),
           const SizedBox(width: 16),
           // Bell with badge
-          Stack(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.notifications_outlined, color: AppColors.grey600),
-                onPressed: () => NotificationsPanel.show(context),
-              ),
-              Positioned(
-                right: 6,
-                top: 6,
-                child: Container(
-                  width: 16,
-                  height: 16,
-                  decoration: const BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Center(
-                    child: Text('2',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: AppColors.grey600),
+            onPressed: () => NotificationsPanel.show(context),
           ),
           const SizedBox(width: 8),
           // User avatar
@@ -97,7 +74,7 @@ class AdminTopBar extends StatelessWidget {
               CircleAvatar(
                 radius: 17,
                 backgroundColor: AppColors.primary,
-                child: Text('AS',
+                  child: Text(initials,
                   style: GoogleFonts.inter(
                     color: Colors.white,
                     fontSize: 12,
@@ -110,14 +87,14 @@ class AdminTopBar extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Admin Sistema',
+                  Text(email,
                     style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.grey800,
                     ),
                   ),
-                  Text('Administrador',
+                  Text('Conta autenticada',
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       color: AppColors.grey500,
