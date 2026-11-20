@@ -17,7 +17,7 @@ class AppColors {
 
   // Neutral
   static const Color white = Color(0xFFFFFFFF);
-  static const Color background = Color(0xFFF8FAFC);
+  static const Color background = Color(0xFFEEEEEE);
   static const Color surface = Color(0xFFFFFFFF);
   static const Color grey50 = Color(0xFFF8FAFC);
   static const Color grey100 = Color(0xFFF1F5F9);

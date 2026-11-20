@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 import '../../../core/models/product.dart';
 import '../../../core/services/api_client.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/product_card.dart';
 import '../../../core/widgets/product_image.dart';
 
 class BuyerHomeScreen extends StatefulWidget {
@@ -28,86 +28,156 @@ class _BuyerHomeScreenState extends State<BuyerHomeScreen> {
 
   Future<_HomeData> _load() async {
     final api = ApiClient();
-    final results = await Future.wait([api.getProducts(featured: true), api.getBanners()]);
+    final results = await Future.wait([api.getProducts(), api.getBanners()]);
     return _HomeData(results[0] as List<Product>, results[1] as List<Map<String, dynamic>>);
   }
 
   @override
   Widget build(BuildContext context) => FutureBuilder<_HomeData>(
-        future: _data,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return _empty(snapshot.error.toString(), Icons.cloud_off_outlined);
-          }
-          final data = snapshot.data!;
-          final categories = data.products.map((item) => item.category).toSet().toList()..sort();
-          final wide = MediaQuery.sizeOf(context).width > 960;
+    future: _data,
+    builder: (context, snapshot) {
+      if (snapshot.connectionState == ConnectionState.waiting) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (snapshot.hasError) {
+        return _empty(snapshot.error.toString(), Icons.cloud_off_outlined);
+      }
 
-          return ListView(
-            padding: EdgeInsets.zero,
-            children: [
-              // ── Banners ocupando 100% da largura, sem margens ou bordas arredondadas ──
-              if (data.banners.isNotEmpty) ...[
-                _BannerSlider(banners: data.banners, wide: wide),
-                const SizedBox(height: 24),
-              ],
+      final data = snapshot.data!;
+      final products = data.products;
+      final firstProducts = products.take(6).toList();
+      final remainingProducts = products.skip(6).toList();
+      final width = MediaQuery.sizeOf(context).width;
+      final wide = width > 960;
+      final horizontalPadding = wide ? 24.0 : 16.0;
 
-              // ── Demais conteúdos dentro do padding padrão da página ──
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: wide ? 24 : 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Seção "Cuidamos de cada compra" estilo Mercado Livre ──
-                    _buildTrustSection(wide),
-                    const SizedBox(height: 28),
-
-                    if (categories.isNotEmpty) ...[
-                      Text('Explore categorias', style: GoogleFonts.inter(fontSize: 19, fontWeight: FontWeight.w800, color: AppColors.grey900)),
-                      const SizedBox(height: 10),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: categories.map((category) => ActionChip(
-                          label: Text(category),
-                          onPressed: () => context.go('/buyer/products'),
-                        )).toList(),
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    Row(children: [
-                      Expanded(child: Text('Em destaque', style: GoogleFonts.inter(fontSize: 19, fontWeight: FontWeight.w800, color: AppColors.grey900))),
-                      TextButton(onPressed: () => context.go('/buyer/products'), child: const Text('Ver produtos')),
-                    ]),
-                    const SizedBox(height: 10),
-
-                    if (data.products.isEmpty)
-                      _empty('Ainda não há produtos em destaque.', Icons.inventory_2_outlined)
-                    else
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: data.products.length,
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: wide ? 4 : 2,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
-                          childAspectRatio: wide ? 0.76 : 0.68,
-                        ),
-                        itemBuilder: (_, index) => ProductCard(product: data.products[index]),
-                      ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+      return Container(
+        color: AppColors.background,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            if (data.banners.isNotEmpty)
+              _BannerSlider(banners: data.banners, wide: wide),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                20,
+                horizontalPadding,
+                0,
               ),
-            ],
-          );
-        },
+              child: _buildTrustSection(wide),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                horizontalPadding,
+                20,
+                horizontalPadding,
+                28,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (products.isEmpty)
+                    _empty(
+                      'Ainda não há produtos em destaque.',
+                      Icons.inventory_2_outlined,
+                    )
+                  else
+                    _buildFeaturedProducts(
+                      firstProducts,
+                      width - horizontalPadding * 2,
+                    ),
+
+                  if (remainingProducts.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _buildMoreProducts(remainingProducts),
+                  ],
+                  const SizedBox(height: 20),
+                  Align(
+                    alignment: Alignment.center,
+                    child: TextButton(
+                      onPressed: () => context.go('/buyer/products'),
+                      child: const Text('Ver todos os produtos'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       );
+    },
+  );
+
+  Widget _buildFeaturedProducts(List<Product> products, double availableWidth) {
+    const spacing = 12.0;
+    final cardWidth = ((availableWidth - spacing * 5) / 6)
+        .clamp(174.0, 220.0)
+        .toDouble();
+
+    return SizedBox(
+      height: 322,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            for (var index = 0; index < products.length; index++) ...[
+              if (index > 0) const SizedBox(width: spacing),
+              _FeaturedProductCard(product: products[index], width: cardWidth),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMoreProducts(List<Product> products) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.grey200),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Mais produtos para você',
+            style: GoogleFonts.inter(
+              fontSize: 19,
+              fontWeight: FontWeight.w800,
+              color: AppColors.grey900,
+            ),
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 292,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  for (var index = 0; index < products.length; index++) ...[
+                    if (index > 0) const SizedBox(width: 20),
+                    _InlineProductTile(product: products[index]),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   // ── Seção de Segurança e Garantia estilo Mercado Livre ──────────────────
   Widget _buildTrustSection(bool wide) {
@@ -484,4 +554,191 @@ class _TrustCardData {
   final IconData icon;
   final String title;
   final String subtitle;
+}
+
+class _FeaturedProductCard extends StatelessWidget {
+  const _FeaturedProductCard({required this.product, required this.width});
+
+  final Product product;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+    ).format(product.price);
+    final oldPrice = product.oldPrice;
+    final hasDiscount = oldPrice != null && oldPrice > product.price;
+
+    return SizedBox(
+      width: width,
+      child: Material(
+        color: Colors.white,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: AppColors.grey200),
+        ),
+        child: InkWell(
+          onTap: () => context.go('/buyer/product/${product.id}'),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(
+                height: 144,
+                width: double.infinity,
+                child: ProductImage(
+                  dataUrl: product.imageDataUrl,
+                  fit: BoxFit.contain,
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.grey800,
+                          height: 1.35,
+                        ),
+                      ),
+                      const Spacer(),
+                      if (hasDiscount)
+                        Text(
+                          NumberFormat.currency(
+                            locale: 'pt_BR',
+                            symbol: 'R\$',
+                          ).format(oldPrice),
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: AppColors.grey500,
+                            decoration: TextDecoration.lineThrough,
+                          ),
+                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              price,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.grey900,
+                              ),
+                            ),
+                          ),
+                          if (hasDiscount) ...[
+                            const SizedBox(width: 4),
+                            Text(
+                              '${(((oldPrice - product.price) / oldPrice) * 100).round()}% OFF',
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.success,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        product.category,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppColors.grey500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineProductTile extends StatelessWidget {
+  const _InlineProductTile({required this.product});
+
+  final Product product;
+
+  @override
+  Widget build(BuildContext context) {
+    final price = NumberFormat.currency(
+      locale: 'pt_BR',
+      symbol: 'R\$',
+    ).format(product.price);
+    final oldPrice = product.oldPrice;
+    final hasDiscount = oldPrice != null && oldPrice > product.price;
+
+    return SizedBox(
+      width: 176,
+      child: InkWell(
+        onTap: () => context.go('/buyer/product/${product.id}'),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 164,
+              width: double.infinity,
+              child: ProductImage(
+                dataUrl: product.imageDataUrl,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              product.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.grey800,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 6),
+            if (hasDiscount)
+              Text(
+                '${(((oldPrice - product.price) / oldPrice) * 100).round()}% OFF',
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.success,
+                ),
+              ),
+            Text(
+              price,
+              style: GoogleFonts.inter(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: AppColors.grey900,
+              ),
+            ),
+            Text(
+              product.category,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(fontSize: 11, color: AppColors.grey500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
